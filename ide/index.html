@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bootstrap 101 Template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="bs/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="css/default.css" rel="stylesheet" media="screen">
+    <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script> var editor = null; </script>
+    <style type="text/css" media="screen">
+      body {
+          /* overflow: hidden; */
+      }
+    
+      #editor { 
+        position: relative !important;
+        border: 1px solid lightgray;
+        margin: auto;
+        height: 400px;
+        width: 80%;
+        /*
+        width: 100%;
+        height: 90%;
+        margin: 0;
+        position: absolute;
+        top: 60px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        */
+      }
+    </style>
+  </head>
+  <body>
+
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <script src="bs/js/bootstrap.min.js"></script>
+    
+    <div class="container">
+
+      <div id="masthead" class="masthead">
+        <h3 class="muted">Jupiter</h3>
+        <div class="navbar">
+          <div class="navbar-inner">
+            <div class="container">
+              <ul class="nav">
+                <li ><a href="#">Save</a></li>
+                <li><a href="#">Compile</a></li>
+                <li><a href="#">Run</a></li>
+              </ul>
+            </div>
+          </div>
+        </div><!-- /.navbar -->
+      </div>
+    </div>
+      
+    <pre id="editor">PROC main ()
+  heartbeat()
+:</pre>
+    
+    <script>
+        editor = ace.edit("editor");
+        editor.setTheme("ace/theme/twilight");
+        editor.getSession().setMode("ace/mode/javascript");
+        editor.getSession().setTabSize(2);
+        editor.getSession().setUseSoftTabs(true);
+        document.getElementById('editor').style.fontSize='12px';
+        editor.getSession().setUseWrapMode(true);
+        editor.setHighlightActiveLine(true);
+    
+        
+        editor.commands.addCommand({
+            name: 'myCommand',
+            bindKey: {win: 'Ctrl-G',  mac: 'Command-G'},
+            exec: function(editor) {
+              console.log("COMMAND-G WAS PRESSED.")
+            },
+            readOnly: false
+        });
+
+        var heightUpdateFunction = function() {
+
+            // http://stackoverflow.com/questions/11584061/
+            /*
+            var newHeight =
+                      editor.getSession().getScreenLength()
+                      * editor.renderer.lineHeight
+                      + editor.renderer.scrollBar.getWidth();
+            */
+            // Set the height to 60% of the window height.
+            newHeight = ($(window).height() * 0.6);
+            console.log(newHeight);
+            
+            // $('#editor').height(newHeight.toString() + "px");
+            // $('#editor-section').height(newHeight.toString() + "px");
+            $('#editor').height(newHeight + "px");
+            $('#editor-section').height(newHeight + "px");
+
+            // This call is required for the editor to fix all of
+            // its inner structure for adapting to a change in size
+            editor.resize();
+        };
+
+        // Set initial size to match initial content
+        // heightUpdateFunction();
+
+        // Whenever a change happens inside the ACE editor, update
+        // the size again
+        // editor.getSession().on('change', heightUpdateFunction);
+    </script>
+    
+    <script>
+    heightUpdateFunction();
+    $(window).resize(heightUpdateFunction);
+    </script>
+    
+  </body>
+</html>

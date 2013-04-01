@@ -66,12 +66,34 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
     </div>
     
       
-    <pre id="editor">#INCLUDE "plumbing.module"
-PROC main ()
-  heartbeat()
-:
+    <pre id="editor">void setup () {
+  
+}
+
+void loop () {
+
+}
 </pre>
     
+    <script>
+    var compileFun = function () {
+          console.log('Reticulating Splines.');
+          var d = {};
+          d['code'] = $.base64.encode(editor.getValue());
+          d['language'] = 'arduino';
+          
+          $.ajax ({
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(d),
+            url: 'http://localhost:3000/compile',
+            success: function(resp) {
+              console.log(resp.result);
+            }
+          });
+        };
+    </script>
     <script>
         editor = ace.edit("editor");
         editor.setTheme("ace/theme/twilight");
@@ -81,13 +103,14 @@ PROC main ()
         document.getElementById('editor').style.fontSize='12px';
         editor.getSession().setUseWrapMode(true);
         editor.setHighlightActiveLine(true);
-    
+        editor.getSession().setMode("ace/mode/c_cpp");
         
         editor.commands.addCommand({
             name: 'myCommand',
             bindKey: {win: 'Ctrl-G',  mac: 'Command-G'},
             exec: function(editor) {
               console.log("COMMAND-G WAS PRESSED.")
+              compileFun();
             },
             readOnly: false
         });
@@ -131,25 +154,8 @@ PROC main ()
     </script>
     
     
-    <script>
-    var d = {};
-    d['code'] = $.base64.encode(editor.getValue());
-    
-    $("#compile").click( function () {
-      console.log('Reticulating Splines.');
-      //console.log(d.code);
-      
-      $.ajax ({
-        type: 'POST',
-        dataType: 'json',
-        contentType: 'application/json',
-        data: JSON.stringify(d),
-        url: 'http://localhost:3000/compile',
-        success: function(resp) {
-          console.log(resp.result);
-        }
-      });
-    });
+    <script>    
+    $("#compile").click(compileFun);
     </script>
     
   </body>

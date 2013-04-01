@@ -1,3 +1,9 @@
+<!-- 
+
+http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql-auth/ 
+
+-->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -7,7 +13,13 @@
     <link href="bs/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link href="css/default.css" rel="stylesheet" media="screen">
     <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <script src="bs/js/bootstrap.min.js"></script>
+    <script src="js/jquery.base64.min.js"></script>
+    
     <script> var editor = null; </script>
+    
     <style type="text/css" media="screen">
       body {
           /* overflow: hidden; */
@@ -34,8 +46,6 @@
   </head>
   <body>
 
-    <script src="http://code.jquery.com/jquery.js"></script>
-    <script src="bs/js/bootstrap.min.js"></script>
     
     <div class="container">
 
@@ -45,8 +55,8 @@
           <div class="navbar-inner">
             <div class="container">
               <ul class="nav">
-                <li ><a href="#">Save</a></li>
-                <li><a href="#">Compile</a></li>
+                <li><a href="#">Save</a></li>
+                <li><a id="compile" href="#">Compile</a></li>
                 <li><a href="#">Run</a></li>
               </ul>
             </div>
@@ -54,10 +64,13 @@
         </div><!-- /.navbar -->
       </div>
     </div>
+    
       
-    <pre id="editor">PROC main ()
+    <pre id="editor">#INCLUDE "plumbing.module"
+PROC main ()
   heartbeat()
-:</pre>
+:
+</pre>
     
     <script>
         editor = ace.edit("editor");
@@ -90,7 +103,9 @@
             */
             // Set the height to 60% of the window height.
             newHeight = ($(window).height() * 0.6);
-            console.log(newHeight);
+            
+            // Very Noisy
+            // console.log(newHeight);
             
             // $('#editor').height(newHeight.toString() + "px");
             // $('#editor-section').height(newHeight.toString() + "px");
@@ -113,6 +128,28 @@
     <script>
     heightUpdateFunction();
     $(window).resize(heightUpdateFunction);
+    </script>
+    
+    
+    <script>
+    var d = {};
+    d['code'] = $.base64.encode(editor.getValue());
+    
+    $("#compile").click( function () {
+      console.log('Reticulating Splines.');
+      //console.log(d.code);
+      
+      $.ajax ({
+        type: 'POST',
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify(d),
+        url: 'http://localhost:3000/compile',
+        success: function(resp) {
+          console.log(resp.result);
+        }
+      });
+    });
     </script>
     
   </body>

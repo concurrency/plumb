@@ -2,15 +2,21 @@
 (require web-server/dispatch 
          web-server/http
          web-server/servlet-env
+          web-server/servlet/servlet-structs
          net/base64)
+
+(define (compile-handler req b64)
+  (printf "CODE:~n~a~n" 
+          (base64-decode 
+           (string->bytes/utf-8 b64)))
+  (response/xexpr
+   #:code 200
+   `(result ok)))
+  
 
 (define-values (dispatch blog-url)
   (dispatch-rules
-   [("compile" (string-arg)) 
-    (λ (req s) (printf "CODE:~n~a~n" 
-                       (base64-decode 
-                        (string->bytes/utf-8 s)))
-      (response/xexpr `(p ,s)))]
+   [("compile" (string-arg)) compile-handler]
    ))
 
 (define (serve)

@@ -84,11 +84,11 @@ void loop () {
           
           $.ajax ({
             type: 'POST',
-            dataType: 'json',
-            contentType: 'application/json',
-            data: JSON.stringify(d),
-            url: 'http://localhost:3000/compile',
-            success: function(resp) {
+            // dataType: 'json',
+            // contentType: 'application/json',
+            data: d.code,
+            url: 'http://localhost:3000/compile/' + d.code,
+            success: function(resp) { 
               console.log(resp.result);
             }
           });

@@ -16,9 +16,16 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
 
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="bs/js/bootstrap.min.js"></script>
-    <script src="js/jquery.base64.min.js"></script>
+    <!-- <script src="js/jquery.base64.min.js"></script> -->
+    <script src="js/base64.js"></script>
     
-    <script> var editor = null; </script>
+    <script> 
+      var editor = null; 
+      var localURL = "localhost";
+      var localPort = 10000;
+      var remoteURL = "localhost";
+      var remotePort = 9000;
+    </script>
     
     <style type="text/css" media="screen">
       body {
@@ -66,20 +73,16 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
     </div>
     
       
-    <pre id="editor">void setup () {
-  
-}
-
-void loop () {
-
-}
+    <pre id="editor">PROC main ()
+  SKIP
+:
 </pre>
     
     <script>
-    var compileFun = function () {
-          console.log('Reticulating Splines.');
+    var compileFun = function (callback) {
+          console.log('Reticulating Splines 2.');
           var d = {};
-          d['code'] = $.base64.encode(editor.getValue());
+          d['code'] = base64.encode(editor.getValue());
           d['language'] = 'arduino';
           
           $.ajax ({
@@ -87,12 +90,26 @@ void loop () {
             // dataType: 'json',
             // contentType: 'application/json',
             data: d.code,
-            url: 'http://localhost:3000/compile/' + d.code,
+            url: 'http://' + remoteURL + ':' + remotePort 
+                 + '/compile/' + d.code,
             success: function(resp) { 
-              console.log(resp.result);
+              console.log(resp)
+              var xmlDoc = $.parseXML(resp),
+                  $xml = $( xmlDoc ),
+                  $test = $xml.find('b64');
+              var txt = $test.text();
+              txt = txt.replace(/\s/g, '');
+              var hex = base64.decode(txt);
+              callback(hex);
             }
           });
         };
+    
+    var uploadHexFun = function (hex) {
+      console.log('Uploading Hex.');
+      console.log(hex);
+      
+    };
     </script>
     <script>
         editor = ace.edit("editor");
@@ -110,7 +127,7 @@ void loop () {
             bindKey: {win: 'Ctrl-G',  mac: 'Command-G'},
             exec: function(editor) {
               console.log("COMMAND-G WAS PRESSED.")
-              compileFun();
+              compileFun(uploadHexFun);
             },
             readOnly: false
         });

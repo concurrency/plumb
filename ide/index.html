@@ -84,16 +84,17 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
       console.log('Uploading Hex.');
       console.log(hex);
       var d = {};
-      d['code'] = base64.encode(hex);
+      d['code'] = hex;
       d['language'] = 'ihex';
+      var jsonb64 = base64.encode(JSON.stringify(d));
       
       $.ajax ({
         type: 'GET',
         // dataType: 'json',
         // contentType: 'application/json',
-        data: d.code,
+        //data: d.code,
         url: 'http://' + remoteURL + ':' + localPort 
-             + '/program/' + d.code,
+             + '/program/' + jsonb64,
         success: function(resp) { 
           console.log(resp);
         }
@@ -106,16 +107,17 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
     var compileFun = function (chain) {
           console.log('Reticulating Splines 2.');
           var d = {};
-          d['code'] = base64.encode(editor.getValue());
+          d['code'] = editor.getValue();
           d['language'] = 'arduino';
+          var jsonb64 = base64.encode(JSON.stringify(d));
           
           $.ajax ({
             type: 'GET',
-            // dataType: 'json',
-            // contentType: 'application/json',
-            data: d.code,
+            //dataType: 'json',
+            //contentType: 'application/json',
+            //data: JSON.stringify(d),
             url: 'http://' + remoteURL + ':' + remotePort 
-                 + '/compile/' + d.code,
+                 + '/compile/' + jsonb64,
             success: function(resp) { 
               console.log(resp)
               var xmlDoc = $.parseXML(resp),
@@ -123,8 +125,9 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
                   $test = $xml.find('b64');
               var txt = $test.text();
               txt = txt.replace(/\s/g, '');
-              var hex = base64.decode(txt);
-              chain(hex);
+              var json_str = base64.decode(txt);
+              var json = $.parseJSON(json_str);
+              chain(json.hex);
             }
           });
         };

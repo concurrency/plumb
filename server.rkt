@@ -7,11 +7,21 @@
 
 (require "compile.rkt"
          "path-handling.rkt"
-         "util.rkt")
+         "util.rkt"
+         json)
+
+(define (decode-json b64)
+  (let* ([b64-decoded 
+          (base64-decode 
+           (string->bytes/utf-8 b64))]
+         [json
+          (read-json (open-input-string 
+                      (format "~a" b64-decoded)))]
+         [code (hash-ref json 'code)])
+    code))
 
 (define (compile-handler req b64)
-  (let* ([code (base64-decode 
-                (string->bytes/utf-8 b64))]
+  (let* ([code (decode-json b64)]
          [namer (name-generator b64)]
          [occ-name (namer 'occ)]
          [tce-name (namer 'tce)]
@@ -19,7 +29,10 @@
          [hex-name (namer 'hex)])
     (parameterize ([current-directory TEMPDIR])
       
-      (printf "SERVER: ~a~n" code)
+      ;;(printf "SERVER: ~a~n" code)
+      (printf "64: ~a~nCode: ~a~n" 
+              (string-length b64) 
+              (string-length code)) 
       
       (with-output-to-file occ-name
         (λ () (printf "~a" code)))
@@ -31,12 +44,17 @@
       (when (not (file-exists? tce-name))
         (error 'compile-handler "No TCE found: ~a" (current-seconds)))
       
-      (let ([hex (file->string hex-name)])
+      (let* ([hex (file->string hex-name)]
+             [h (make-hash)]
+             [json (with-output-to-string
+                    (λ () 
+                      (hash-set! h 'hex hex)
+                      (write-json h)))])
         (response/xexpr
          #:code 200
          `(b64 ,(format "~a" 
-                        (base64-encode (string->bytes/utf-8 hex))))))
-    )))
+                        (base64-encode (string->bytes/utf-8 json))))))
+      )))
   
 
 (define-values (dispatch blog-url)

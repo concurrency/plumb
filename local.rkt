@@ -3,14 +3,24 @@
          web-server/http
          web-server/servlet-env
           web-server/servlet/servlet-structs
-         net/base64)
+         net/base64
+         json)
 
-(require "path-handling.rkt"
-         )
+(require "path-handling.rkt")
+
+
+(define (decode-json b64)
+  (let* ([b64-decoded 
+          (base64-decode 
+           (string->bytes/utf-8 b64))]
+         [json
+          (read-json (open-input-string 
+                      (format "~a" b64-decoded)))]
+         [code (hash-ref json 'code)])
+    code))
 
 (define (program-handler req b64)
-  (let* ([code (base64-decode 
-                (string->bytes/utf-8 b64))])
+  (let* ([code (decode-json b64)])
     (parameterize ([current-directory TEMPDIR])
       (printf "LOCAL: ~a~n" code)
       (response/xexpr

@@ -15,7 +15,8 @@
       (printf "LOCAL: ~a~n" code)
       (response/xexpr
        #:code 200
-       `(b64 ,code))
+       #:headers (list (make-header #"Access-Control-Allow-Origin" #"*"))
+       `(ihex "ok"))
       )))
     
   

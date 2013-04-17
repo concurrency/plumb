@@ -33,5 +33,25 @@ Proof-of-concept: compile C++ for the Arduino, ship .hex, upload to AVR.
 * Support novice programmer research on Arduino C++/occam-pi.
 * Add visualization components (http://www.graphdracula.net/de/)
 
+## Javascript Libraries
+
+I might want to use Parse for all of the data/user/backend work.
+
+https://parse.com/docs/rest
+
+I think this gives me some magic authenticate/login code that I can use, which would simplify the create account/login/etc. loop that I'm going to need.
+
+Or, perhaps I should just use GitHub for everything; have people OAuth against it, and then use a repository for all of their code?
+
+http://developer.github.com/v3/oauth/
+
+I could also do it all in gists, but that would be ugly.
+
+I think I might want to use async for managing the sequencing of callbacks:
+
+https://github.com/caolan/async#readme
+
+
+
 ### References
 * http://stackoverflow.com/questions/11584061/automatically-adjust-height-to-contents-in-ace-cloud9-editor

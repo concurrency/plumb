@@ -2,6 +2,16 @@
 
 http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql-auth/ 
 
+Also, making things collaborative in realtime with ShareJS:
+https://github.com/josephg/ShareJS
+
+Another editor option:
+http://codemirror.net/
+
+And, Firebase?
+https://www.firebase.com/blog/2013-04-09-firepad-open-source-realtime-collaborative-editor.html
+
+
 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
@@ -27,13 +37,16 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
     <script src="js/vendor/jquery-1.9.1.min.js"></script>    
     <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
     <script src="js/base64.js" type="text/javascript"></script>
+    
+    <script type="text/javascript" src="http://api.filepicker.io/v1/filepicker.js"></script>
+    
     <script type="text/javascript">
-
       var editor = null; 
       var localURL = "localhost";
       var localPort = 10000;
       var remoteURL = "localhost";
       var remotePort = 9000;
+      var currentFPFile = null;
     </script>
     
     <style type="text/css" media="screen">
@@ -57,7 +70,11 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
     </style>
   </head>
   <body>
-
+    
+    <script type="text/javascript">
+      filepicker.setKey("AfQR7dKqVS7WtCvlDkf7Yz");
+    </script>
+    
     <div class="row">
       <div class="span12 offset1">
       <div class="btn-group">
@@ -77,10 +94,10 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
         <ul class="dropdown-menu">
           <li class="nav-header">File Management</li>
           <li>
-            <a href="#">Open</a>
+            <a href="#" id="file-open">Open</a>
           </li>
           <li>
-            <a href="#">Save</a>
+            <a href="#" id="file-save">Save</a>
           </li>
           <li>
             <a href="#">Share</a>
@@ -142,7 +159,9 @@ http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql
 PROC main ()
   heartbeat()
 :
-</pre><script type="text/javascript">
+</pre>
+
+<script type="text/javascript">
 
       var uploadHexFun = function (hex) {
       console.log('Uploading Hex.');
@@ -157,8 +176,7 @@ PROC main ()
         // dataType: 'json',
         // contentType: 'application/json',
         //data: d.code,
-        url: 'http://' + remoteURL + ':' + localPort 
-             + '/program/' + jsonb64,
+        url: 'http://' + remoteURL + ':' + localPort + '/program/' + jsonb64,
         success: function(resp) { 
           console.log(resp);
         }
@@ -255,7 +273,46 @@ PROC main ()
       <script type="text/javascript">
       heightUpdateFunction();
       $(window).resize(heightUpdateFunction);
-      </script> <script type="text/javascript">
+      </script> 
+      
+      <!-- 
+        var code = editor.getSession().getValue();
+        editor.getSession().setValue("new code here");
+      -->
+        
+      <script type="text/javascript">
+      var openFile = function () {
+        filepicker.pick({
+          // Places we can load data from.
+          services: ['COMPUTER', 'GITHUB', 'DROPBOX', 'GOOGLE_DRIVE', 'SKYDRIVE', 'BOX', 'FTP'],
+          // Only load sensible things.
+          // Could use a mimetype instead.
+          extensions: ['.occ', '.module', '.inc', '.md'],
+          maxSize: 50*1024,
+          },
+          // Success
+          function(FPFile){
+            console.log(JSON.stringify(FPFile));
+            // Save the current object
+            currentFPFile = FPFile;
+            // Plunk the data into the editor
+            filepicker.read(FPFile, function(data){
+                editor.getSession().setValue(data);
+            });
+            
+          },
+          // Fail
+          function(FPError){
+            console.log(FPError.toString());
+          }
+        );
+      };
+      $("#file-open").click(openFile);
+      // $("#file-save").click(saveFile);
+      </script>
+      
+      
+      <script type="text/javascript">
 
       $("#compile").click(compileCallback);
       

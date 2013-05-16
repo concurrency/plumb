@@ -32,14 +32,16 @@
 (define (snoc ls o)
   (reverse (cons o (reverse ls))))
 
-(define (make-unique-name content extension seed)
-  (let ([sha (sha1 (open-input-bytes
-                    (string->bytes/utf-8 
-                     (format "~a~a" content seed))))])
-    (format "~a.~a" sha extension)))
+(define (name-generator filename)
+  (let ([base (list-ref (regexp-match "(.*?)\\.occ" filename) 0)])
+    (λ (ext)
+      (format "~a.~a" base ext))))
 
-(define name-generator 
-  (λ (content)
-    (let ([seed (current-milliseconds)])
-      (λ (extension)
-        (make-unique-name content extension seed)))))
+(define CHARS '(a b c d e f g h i j k l m n o p q r s t u v w k y z
+                  A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+                  1 2 3 4 5 6 7 8 9))
+(define (random-string leng)
+  (let ([sp (open-output-string)])
+    (for ([i leng])
+      (write (list-ref CHARS (random (length CHARS))) sp))
+    (get-output-string sp)))

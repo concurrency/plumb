@@ -15,3 +15,18 @@
 
 (define (occam-lib-path lib)
   (build-path LIBPATH (format "~a.lib" lib)))
+
+(define (make-session-dir rs)
+  (make-directory (session-dir rs)))
+
+;; Make sure this is a good session ID
+;; This could be the gatekeeper
+(define (session-dir session-id)
+  (build-path TEMPDIR session-id))
+
+(define (add-session-file session-id filename code)
+  (parameterize ([current-directory (session-dir session-id)])
+    (let ([fp (open-output-file filename 'replace)])
+      (write code fp)
+      (newline fp)
+      (close-output-port fp))))

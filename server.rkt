@@ -94,19 +94,23 @@
 ;; This should be an order-maintained list, not a hash
 (define (add-session id)
   (hash-set! SESSIONS id (current-seconds)))
-(define (cleanup-sessions)
+(define (cleanup-session id)
   '...)
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
 (define (start-session req)
-  (let ([rs (random-string 32)])
+  (let ([rs (format "jupiter-~a" (random-string 32))])
     (add-session rs)
     (make-session-dir rs)
-    rs))
+    ;; Return the session ID.
+    (response/xexpr 
+     #:code 200
+     rs)))
 
 (define (add-file req b64)
   (let ([json (decode-json b64)])
+    (printf "~a~n" json)
     (let ([code (hash-ref json 'code)]
           [filename (hash-ref json 'filename)]
           [session-id (hash-ref json 'sessionid)])
@@ -123,7 +127,7 @@
   (with-handlers ([exn:fail? 
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch
-                   #:launch-browser? #t
+                   #:launch-browser? false
                    #:port 9000
                    #:listen-ip #f ;"192.168.254.201" ; remote.org
                    #:server-root-path (current-directory)

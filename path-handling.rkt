@@ -26,7 +26,7 @@
 
 (define (add-session-file session-id filename code)
   (parameterize ([current-directory (session-dir session-id)])
-    (let ([fp (open-output-file filename 'replace)])
+    (let ([fp (open-output-file filename #:exists 'replace)])
       (write code fp)
       (newline fp)
       (close-output-port fp))))

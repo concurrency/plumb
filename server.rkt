@@ -21,45 +21,31 @@
                       (format "~a" b64-decoded)))])
     json))
 
-(define (compile-handler req b64)
-  (let* ([code (decode-json b64)]
-         [namer (name-generator b64)]
-         [occ-name (namer 'occ)]
-         [tce-name (namer 'tce)]
-         [tbc-name (namer 'tbc)]
-         [hex-name (namer 'hex)])
-    (parameterize ([current-directory TEMPDIR])
-      
-      ;;(printf "SERVER: ~a~n" code)
-      (printf "64: ~a~nCode: ~a~n" 
-              (string-length b64) 
-              (string-length code)) 
-      
-      (with-output-to-file occ-name
-        (λ () (printf "~a" code)))
-      
-      (exe (compile-cmd occ-name))
-      (exe (plinker-cmd tce-name tbc-name))
-      (exe (binhex-cmd tbc-name hex-name))
-      
-      (when (not (file-exists? tce-name))
-        (error 'compile-handler "No TCE found: ~a" (current-seconds)))
-      
-      (let* ([hex (file->string hex-name)]
-             [h (make-hash)]
-             [json (with-output-to-string
-                    (λ () 
-                      (hash-set! h 'hex hex)
-                      (write-json h)))])
-        (response/xexpr
-         #:code 200
-         `(b64 ,(format "~a" 
-                        (base64-encode (string->bytes/utf-8 json))))))
-      )))
 
+(define (error-response msg)
+  (response/xexpr #:code 400 msg))
 
-(define (compile-session session-id main-file)
+(define (success-response msg)
+  (response/xexpr #:code 200 msg))
+
+(define (guarded-compile-session req session-id main-file)
+  (let ([resp (make-parameter (response/xexpr #:code 301 "ERROR IN COMPILE-SESSION"))])
+    ;; Handle error cases.
+    (cond
+      [(not (session-exists? session-id))
+       (resp (error-response "Bad session id."))]
+      [(not (occam-file? main-file))
+       (resp (error-response "Not an occam file."))]
+      [else
+       (resp (compile-session req session-id main-file))]
+      )
+    
+    (resp)))
+                
+  
+(define (compile-session req session-id main-file)
   (parameterize ([current-directory (session-dir session-id)]) 
+    
     (let* ([namer (name-generator main-file)]
            [occ-name (namer 'occ)]
            [tce-name (namer 'tce)]
@@ -67,9 +53,10 @@
            [hex-name (namer 'hex)])
       
       ;; This needs to be improved.
-      (exe (compile-cmd occ-name))
-      (exe (plinker-cmd tce-name tbc-name))
-      (exe (binhex-cmd tbc-name hex-name))
+      (printf "compile cmd: ~a~n" (compile-cmd occ-name))
+      (exe-in-session session-id (compile-cmd occ-name))
+      (exe-in-session session-id (plinker-cmd tce-name tbc-name))
+      (exe-in-session session-id (binhex-cmd tbc-name hex-name))
       
       (when (not (file-exists? tce-name))
         (error 'compile-handler "No TCE found: ~a" (current-seconds)))
@@ -81,12 +68,12 @@
                       (hash-set! h 'hex hex)
                       (write-json h)))]
              [xexpr
-              `(b64 ,(format "~a" 
-                             (base64-encode (string->bytes/utf-8 json))))])
+              (format "~a" 
+                      (base64-encode (string->bytes/utf-8 json)))])
         
         ;; Destroy everything!
         (cleanup-session session-id)
-        
+        ;; Return the b64 encoded JSON file
         (response/xexpr #:code 200 xexpr)
       ))))
 
@@ -96,6 +83,9 @@
   (hash-set! SESSIONS id (current-seconds)))
 (define (cleanup-session id)
   '...)
+(define (session-exists? id)
+  (when (hash-ref SESSIONS id (lambda () false))
+    true))
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
@@ -110,17 +100,22 @@
 
 (define (add-file req b64)
   (let ([json (decode-json b64)])
-    (printf "~a~n" json)
-    (let ([code (hash-ref json 'code)]
+    (let ([code (b64-decode 
+                 (hash-ref json 'code))]
           [filename (hash-ref json 'filename)]
           [session-id (hash-ref json 'sessionid)])
-      (add-session-file session-id filename code))))
+      
+      (add-session-file session-id filename code)
+      
+      (response/xexpr 
+       #:code 200 (format "OK ~a~n" session-id)
+      ))))
 
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("start-session") start-session]
    [("add-file" (string-arg)) add-file]
-   [("compile" (string-arg) (string-arg)) compile-session]
+   [("compile" (string-arg) (string-arg)) guarded-compile-session]
    ))
 
 (define (serve)

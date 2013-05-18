@@ -15,14 +15,23 @@
 (define PORT 9000)
 
 (define (make-server-url cmd #:param [param false])
+         
   (string->url 
    (if param
-       (format "http://~a:~a/~a/~a"
-               HOST
-               PORT
-               cmd
-               param
-               )
+
+       (if (list? param)
+           (format "http://~a:~a/~a~a"
+                   HOST 
+                   PORT
+                   cmd
+                   (apply string-append (map (λ (p) (format "/~a" p)) param)))
+           (format "http://~a:~a/~a/~a"
+                   HOST
+                   PORT
+                   cmd
+                   param
+                   ))
+       
        (format "http://~a:~a/~a" HOST PORT cmd)
        )))
 
@@ -38,7 +47,7 @@
   (let ([os (open-output-string)])
     (write-json h os)
     (get-output-string os)))
-     
+
 (define (b64-encode str)
   (base64-encode (string->bytes/locale str)))
 
@@ -49,22 +58,51 @@
      os)
     (get-output-string os)))
 
-  
+(define (read-all port)
+  (let ([content ""])
+    (let ([ip port])
+      (let loop ([line (read-line ip)])
+        (unless (eof-object? line)
+          (set! content (format "~a~a~n" content line))
+          (loop (read-line ip))))
+        (close-input-port ip)
+        )
+    content))
+
 (define (add-file filename)
   (when (file-exists? filename)
-    (let ([b64 (b64-stream filename)]
+    ;; Do I need to encode the file twice?
+    (let ([file-contents (b64-stream filename)]
           [h (make-hash)])
       ;; Load the hash for shipment
       (hash-set! h 'filename filename)
-      (hash-set! h 'code b64)
+      (hash-set! h 'code file-contents)
       (hash-set! h 'sessionid (session-id))
       (let ([resp (get-pure-port (make-server-url "add-file" 
                                                   #:param
                                                   (b64-encode (json-encode h))))])
         (printf "[~a] add-file response~n" (read-line resp))
         (close-input-port resp)
-      ))))
+        ))))
 
+
+(define (b64-decode str)
+  (format "~a" 
+          (base64-decode (string->bytes/locale str))))
+
+(define (compile id main)
+  (let ([url (make-server-url "compile"
+                              #:param
+                              (list id main))])
+    (printf "~a~n" (url->string url))
+    (let ([resp (get-pure-port url)]
+          [content (make-parameter "")])
+      (content (read-all resp))
+      (let ([json (string->jsexpr  (b64-decode (content)))])
+        (printf "~a~n" (hash-ref json 'hex)))
+      
+      (close-input-port resp))))
+  
 (define plumb 
   (command-line
    #:program "plumb"
@@ -89,8 +127,14 @@
                         "Add a single file."
                         (add-file filename)]
    
+   [("-c" "--compile") main
+                       "Compile <main-file>."
+                       (compile (session-id) main)]
    
    
-   #:args filename
-   filename
+   
+   #:args filenames
+   (for-each (λ (f)
+               (add-file f))
+             filenames)
    ))

@@ -3,7 +3,7 @@
          "path-handling.rkt")
 
 (provide compile
-         exe 
+         exe-in-session 
          compile-cmd
          plinker-cmd
          binhex-cmd)
@@ -62,8 +62,8 @@
           prog
           (render (parse flags))))
 
-(define (exe cmd)
-  (parameterize ([current-directory TEMPDIR])
+(define (exe-in-session id cmd)
+  (parameterize ([current-directory (session-dir id)])
     (system/exit-code cmd)))
 
 (define (compile-cmd fname)    

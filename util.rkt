@@ -3,7 +3,8 @@
 (provide (all-defined-out))
 
 ;; for make-unique-name
-(require file/sha1)
+(require file/sha1
+         net/base64)
 
 (define (->sym v)
   (string->symbol (format "~a" v)))
@@ -25,6 +26,10 @@
 (define (->string o)
   (format "~a" o))
 
+(define (b64-decode str)
+  (format "~a" 
+          (base64-decode (string->bytes/locale str))))
+
 (define (symbol<? a b)
   (string<? (symbol->string a)
             (symbol->string b)))
@@ -33,7 +38,7 @@
   (reverse (cons o (reverse ls))))
 
 (define (name-generator filename)
-  (let ([base (list-ref (regexp-match "(.*?)\\.occ" filename) 0)])
+  (let ([base (list-ref (regexp-match "(.*?)\\.occ" filename) 1)])
     (λ (ext)
       (format "~a.~a" base ext))))
 
@@ -45,3 +50,6 @@
     (for ([i leng])
       (write (list-ref CHARS (random (length CHARS))) sp))
     (get-output-string sp)))
+
+(define (occam-file? filename)
+  (regexp-match "\\.occ$" filename))

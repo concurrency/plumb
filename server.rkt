@@ -21,31 +21,66 @@
                       (format "~a" b64-decoded)))])
     json))
 
+(define (make-response http-code resp-code msg #:json [h (make-hash)])
+  (define json (make-hash))
+  (hash-set! json 'http http-code)
+  (hash-set! json 'code (format "~a" resp-code))
+  (hash-set! json 'message msg)
+  
+  (set! json (extend-response json h))
 
-(define (error-response msg)
-  (response/xexpr #:code 400 msg))
+  json)
 
-(define (success-response msg)
-  (response/xexpr #:code 200 msg))
+(define (extend-response h1 h2)
+  (hash-for-each h2 (λ (k v)
+                      (hash-set! h1 k v)))
+  h1)
+
+(define (encode-response json)
+  (response/xexpr #:code (hash-ref json 'http)
+                  (bytes->string/utf-8
+                   (base64-encode
+                    (string->bytes/utf-8
+                     (jsexpr->string json))))))
+
+
+(define (error-response err-code msg #:json [json (make-hash)])
+  (make-response 400 err-code msg #:json json))
+
+(define (success-response resp-code msg #:json [json (make-hash)])
+  (make-response 200 resp-code msg #:json json))
+
+(define SUCCESS-CODES (map ->string '(OK GOOD AWESOME)))
+
+(define (success-response? resp)
+  (and (hash? resp)
+       (member (hash-ref resp 'code) SUCCESS-CODES)))
 
 (define (guarded-compile-session req session-id main-file)
-  (let ([resp (make-parameter (response/xexpr #:code 301 "ERROR IN COMPILE-SESSION"))])
+  (let ([resp 
+         (make-parameter
+          (error-response 'COMPILE-ERROR
+                          "ERROR IN COMPILE-SESSION"))])
     ;; Handle error cases.
     (cond
       [(not (session-exists? session-id))
-       (resp (error-response "Bad session id."))]
+       (resp (error-response 'BAD-ID "Bad session id."))]
       [(not (occam-file? main-file))
-       (resp (error-response "Not an occam file."))]
+       (resp (error-response 'NOT-OCC-FILE "Not an occam file."))]
       [else
        (resp (compile-session req session-id main-file))]
       )
     
-    (resp)))
-                
-  
+    (encode-response (resp))))
+
+
 (define (compile-session req session-id main-file)
-  (parameterize ([current-directory (session-dir session-id)]) 
-    
+  (parameterize ([current-directory (session-dir session-id)])
+    ;; Assume a successful build.
+    (define resp 
+      (make-parameter
+       (success-response 'OK "Build successful")))
+
     (let* ([namer (name-generator main-file)]
            [occ-name (namer 'occ)]
            [tce-name (namer 'tce)]
@@ -54,28 +89,39 @@
       
       ;; This needs to be improved.
       (printf "compile cmd: ~a~n" (compile-cmd occ-name))
-      (exe-in-session session-id (compile-cmd occ-name))
-      (exe-in-session session-id (plinker-cmd tce-name tbc-name))
-      (exe-in-session session-id (binhex-cmd tbc-name hex-name))
       
-      (when (not (file-exists? tce-name))
-        (error 'compile-handler "No TCE found: ~a" (current-seconds)))
+      ;; Check and see that compilation worked.
+      (when (success-response? (resp))
+        (let ([result (handle-compilation session-id (compile-cmd occ-name))])
+          (unless (equal? result "SUCCESS")
+            (resp 
+             (error-response 'SYNTAX result)))))      
+
+      ;; If things compiled, then we should link.
+      (when (success-response? (resp))
+        (exe-in-session session-id (plinker-cmd tce-name tbc-name)))
       
-      (let* ([hex (file->string hex-name)]
-             [h (make-hash)]
-             [json (with-output-to-string
-                    (λ () 
-                      (hash-set! h 'hex hex)
-                      (write-json h)))]
-             [xexpr
-              (format "~a" 
-                      (base64-encode (string->bytes/utf-8 json)))])
-        
-        ;; Destroy everything!
-        (cleanup-session session-id)
-        ;; Return the b64 encoded JSON file
-        (response/xexpr #:code 200 xexpr)
-      ))))
+      ;; If things linked, we should binhex.
+      (when (success-response? (resp))
+        (exe-in-session session-id (binhex-cmd tbc-name hex-name)))
+      
+      (when (success-response? (resp))
+        (when (not (file-exists? tce-name))
+          (error 'compile-handler "No TCE found: ~a" (current-seconds))))
+
+      (when (success-response? (resp))
+        (resp (extend-response 
+               (resp) 
+               (make-hash `((hex . ,(file->string hex-name))))))
+        )
+      
+      
+      
+      ;; Destroy everything!
+      (cleanup-session session-id)
+      ;; Return the b64 encoded JSON file
+      (resp)
+      )))
 
 (define SESSIONS (make-hash))
 ;; This should be an order-maintained list, not a hash
@@ -109,7 +155,7 @@
       
       (response/xexpr 
        #:code 200 (format "OK ~a~n" session-id)
-      ))))
+       ))))
 
 (define-values (dispatch blog-url)
   (dispatch-rules

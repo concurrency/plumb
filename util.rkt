@@ -53,3 +53,15 @@
 
 (define (occam-file? filename)
   (regexp-match "\\.occ$" filename))
+
+
+(define (read-all port)
+  (let ([content ""])
+    (let ([ip port])
+      (let loop ([line (read-line ip)])
+        (unless (eof-object? line)
+          (set! content (format "~a~a~n" content line))
+          (loop (read-line ip))))
+      (close-input-port ip)
+      )
+    content))

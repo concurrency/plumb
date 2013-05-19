@@ -15,10 +15,10 @@
 (define PORT 9000)
 
 (define (make-server-url cmd #:param [param false])
-         
+  
   (string->url 
    (if param
-
+       
        (if (list? param)
            (format "http://~a:~a/~a~a"
                    HOST 
@@ -65,8 +65,8 @@
         (unless (eof-object? line)
           (set! content (format "~a~a~n" content line))
           (loop (read-line ip))))
-        (close-input-port ip)
-        )
+      (close-input-port ip)
+      )
     content))
 
 (define (add-file filename)
@@ -90,19 +90,43 @@
   (format "~a" 
           (base64-decode (string->bytes/locale str))))
 
+(define (response-code json)
+  (hash-ref json 'code (λ () 99)))
+
+(define (unpack resp-port)
+  (string->jsexpr (b64-decode (read-all resp-port))))
+
+(define (->string o)
+  (format "~a" o))
+
+(define SUCCESS-CODES
+  (map ->string '(OK GOOD AWESOME)))
+(define DEFAULT-ERROR 99)
+
+(define (error-code? json)
+  (let ([code (hash-ref json 'code (λ () DEFAULT-ERROR))])
+    (not (member code SUCCESS-CODES))))
+
 (define (compile id main)
   (let ([url (make-server-url "compile"
                               #:param
                               (list id main))])
     (printf "~a~n" (url->string url))
-    (let ([resp (get-pure-port url)]
+    (let ([resp-port (get-pure-port url)]
           [content (make-parameter "")])
-      (content (read-all resp))
-      (let ([json (string->jsexpr  (b64-decode (content)))])
-        (printf "~a~n" (hash-ref json 'hex)))
       
-      (close-input-port resp))))
-  
+      (content (unpack resp-port))
+      
+      (cond 
+        [(error-code? (content))
+         (printf "[~a] ~a~n" 
+                 (hash-ref (content) 'code)
+                 (hash-ref (content) 'message))]
+        [else
+         (printf "~a~n" (hash-ref (content) 'hex))])
+      
+      (close-input-port resp-port))))
+
 (define plumb 
   (command-line
    #:program "plumb"

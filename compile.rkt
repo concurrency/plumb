@@ -5,6 +5,7 @@
 (provide compile
          exe-in-session 
          compile-cmd
+         handle-compilation
          plinker-cmd
          binhex-cmd)
 
@@ -64,8 +65,30 @@
 
 (define (exe-in-session id cmd)
   (parameterize ([current-directory (session-dir id)])
-    (system/exit-code cmd)))
+    (system/exit-code cmd)))     
 
+(define (handle-compilation id cmd)
+  (parameterize ([current-directory (session-dir id)])
+    (let-values ([(stdout stdin pid stderr control)
+                  (apply values (process cmd))])
+      (define result (make-parameter 'UNKNOWN))
+      
+      (let loop ([status (control 'status)])
+        (case status
+          [(running) (sleep 1) (loop (control 'status))]
+          [(done-ok) 
+           (result "SUCCESS")]
+          [(done-error)
+           (let ([err-msg (read-all stdout)]
+                 [details (read-all stderr)])
+             (close-input-port stdout)
+             (close-input-port stderr)
+             (close-output-port stdin)
+             (control 'kill)
+             (result (format "~a:~n~a~n" err-msg details)))]))
+      
+      (result))))
+    
 (define (compile-cmd fname)    
   (system-call
   COMPILE

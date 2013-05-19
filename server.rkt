@@ -122,12 +122,13 @@
       (hash-ref (result) 'filename)
       (hash-ref (result) 'sessionid)))
   
-  (when (success-response? (result))
+  (set/catch result success-response?
+    (get-response 'ERROR-ADD-FILE)
     (let ([code (hash-ref (result) 'code)]
           [filename (hash-ref (result) 'filename)]
           [session-id (hash-ref (result) 'sessionid)])
       (add-session-file session-id filename code)
-      (result (get-response 'OK-ADD-FILE))
+      (get-response 'OK-ADD-FILE)
       ))
   
   (printf "~a~n" (result))

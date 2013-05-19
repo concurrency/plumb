@@ -5,7 +5,8 @@
          net/base64
          json)
 
-(require "interface.rkt")
+(require "interface.rkt"
+         "../response-handling.rkt")
 
 (define VERSION "1.0.0")
 (define verbose-mode (make-parameter false))
@@ -58,6 +59,8 @@
      os)
     (get-output-string os)))
 
+;; CONTRACT
+;; read-all : port -> string
 (define (read-all port)
   (let ([content ""])
     (let ([ip port])
@@ -78,13 +81,39 @@
       (hash-set! h 'filename filename)
       (hash-set! h 'code file-contents)
       (hash-set! h 'sessionid (session-id))
+      (hash-set! h 'action "add-file")
       (let ([resp (get-pure-port (make-server-url "add-file" 
                                                   #:param
                                                   (b64-encode (json-encode h))))])
-        (printf "[~a] add-file response~n" (read-line resp))
+        (let ([h (process-response resp)])
+          (printf "[~a] ~a~n" 
+                  (hash-ref h 'code)
+                  (hash-ref h 'message)))
+          
         (close-input-port resp)
         ))))
 
+(define (process-response port)
+  (define result (make-parameter port))
+  
+  ;; Transform the bytes to a string
+  (set/catch result port?
+    (get-response 'ERROR-BYTES-TO-STRING)
+    (read-all (result)))
+  
+  ;; Base64 decode
+  (set/catch result string?
+    (get-response 'ERROR-B64-DECODE)
+    (format "~a" 
+          (base64-decode 
+           (string->bytes/utf-8 (result)))))
+  
+  ;; Read JSON
+  (set/catch result string?
+    (get-response 'ERROR-READ-JSON)
+    (read-json (open-input-string (result))))
+  
+  (result))
 
 (define (b64-decode str)
   (format "~a" 

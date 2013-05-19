@@ -8,6 +8,62 @@
 (provide (all-defined-out))
 
 
+;; CONTRACT
+;; SERVER SIDE
+;; b64 encoded request -> json
+;; should always contain an 'action field
+(define (process-request b64 action-type)
+  (define result (make-parameter b64))
+  
+  ;; Transform the bytes to a string
+  (set/catch result bytes?
+    (get-response 'ERROR-BYTES-TO-STRING)
+    (string->bytes/utf-8 b64))
+  
+  ;; Base64 decode
+  (set/catch result string?
+    (get-response 'ERROR-B64-DECODE)
+    (format "~a" 
+            (base64-decode 
+             (string->bytes/utf-8 (result)))))
+  
+  ;; Read JSON
+  (set/catch result string?
+    (get-response 'ERROR-READ-JSON)
+    (read-json (open-input-string (result))))
+  
+  ;; Check action
+  (try/catch result hash?
+    (get-response 'ERROR-WRONG-ACTION)
+    (when (not (equal? (hash-ref (result) 'action) action-type))
+      (error))
+    )
+  
+  (result))
+
+;; CLIENT SIDE
+(define (process-response port)
+  (define result (make-parameter port))
+  
+  ;; Transform the bytes to a string
+  (set/catch result port?
+    (get-response 'ERROR-BYTES-TO-STRING)
+    (read-all (result)))
+  
+  ;; Base64 decode
+  (set/catch result string?
+    (get-response 'ERROR-B64-DECODE)
+    (format "~a" 
+          (base64-decode 
+           (string->bytes/utf-8 (result)))))
+  
+  ;; Read JSON
+  (set/catch result string?
+    (get-response 'ERROR-READ-JSON)
+    (read-json (open-input-string (result))))
+  
+  (result))
+
 (define (encode-response json)
   (when (error-response? json)
     (printf "[~a] ~a~n~n~a~n"
@@ -72,6 +128,13 @@
 (make-response 'ERROR-BINHEX "Error binhexing code.")
 (make-response 'ERROR-READING-HEX "Error reading binhex file.")
 
+(make-response 'ERROR-NO-FILE "No file found for uploading.")
+(make-response 'ERROR-CANNOT-READ "Cannot read file for upload.")
+(make-response 'ERROR-JSON-ENCODE "Cannot encode data for JSON upload.")
+(make-response 'ERROR-HTTP-GET "Error in HTTP GET.")
+(make-response 'ERROR-PROCESS-RESPONSE "Error processing response from server.")
+
+
 ;; Default successes
 (make-response 'OK "Everything's OK.")
 (make-response 'OK-BUILD "Build successful.")
@@ -87,17 +150,25 @@
   (not (error-response? r)))
 
 (define-syntax-rule (try/catch param bool? alt body)
-  (with-handlers ([exn:fail? (λ (e)
-                               (printf "~a~n" e)
-                               (param alt))])
+  (with-handlers ([exn? (λ (e)
+                          ;(printf "~a~n" e)
+                          (if (hash? alt)
+                              (param (extend-response 
+                                      alt
+                                      `((message . ,(exn-message e)))))
+                              (param alt)))])
     (when (bool? (param))
       body
       )))
 
 (define-syntax-rule (set/catch param bool? alt body)
-  (with-handlers ([exn:fail? (λ (e)
-                               (printf "~a~n" e)
-                               (param alt))])
+  (with-handlers ([exn? (λ (e)
+                               ;(printf "~a~n" e)
+                               (if (hash? alt)
+                              (param (extend-response 
+                                      alt
+                                      `((message . ,(exn-message e)))))
+                              (param alt)))])
     (when (bool? (param))
       (param body))))
 

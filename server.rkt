@@ -13,42 +13,6 @@
          "session-management.rkt")
 
 
-
-
-
-
-;; CONTRACT
-;; b64 encoded request -> json
-;; should always contain an 'action field
-(define (process-request b64 action-type)
-  (define result (make-parameter b64))
-  
-  ;; Transform the bytes to a string
-  (set/catch result bytes?
-    (get-response 'ERROR-BYTES-TO-STRING)
-    (string->bytes/utf-8 b64))
-  
-  ;; Base64 decode
-  (set/catch result string?
-    (get-response 'ERROR-B64-DECODE)
-    (format "~a" 
-            (base64-decode 
-             (string->bytes/utf-8 (result)))))
-  
-  ;; Read JSON
-  (set/catch result string?
-    (get-response 'ERROR-READ-JSON)
-    (read-json (open-input-string (result))))
-  
-  ;; Check action
-  (try/catch result hash?
-    (get-response 'ERROR-WRONG-ACTION)
-    (when (not (equal? (hash-ref (result) 'action) action-type))
-      (error))
-    )
-  
-  (result))
-
 (define (generate-names main-file)
   (define names (make-hash))
   (hash-set! names 'namer (name-generator main-file))
@@ -81,11 +45,6 @@
     (define response (make-parameter (get-response 'OK-BUILD)))
     (define names (generate-names main-file))
     (cleanup-session session-id names)
-    
-    ;; This needs to be improved.
-    ;; (printf "compile cmd: ~a~n" (compile-cmd names))
-    
-    ;; #:extra `((fromcompiler . ,result))
     
     (response (compile session-id (compile-cmd names)))
  
@@ -131,7 +90,6 @@
       (get-response 'OK-ADD-FILE)
       ))
   
-  (printf "~a~n" (result))
   (encode-response (result)))
 
 

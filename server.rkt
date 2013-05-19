@@ -65,7 +65,6 @@
   ;; Handle error cases.
   (cond
     [(not (session-exists? session-id))
-     (printf "HERE~n")
      (resp (get-response 'ERROR-BAD-ID))]
     [(not (occam-file? main-file))
      (resp (make-response 'ERROR-NOT-OCC-FILE))]

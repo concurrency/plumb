@@ -27,8 +27,11 @@
 (define RESPONSES (make-hash))
 (define (add-response code h)
   (hash-set! RESPONSES code h))
-(define (get-response code)
-  (hash-ref RESPONSES code))
+
+(define (get-response code #:extra [h '()])
+  (extend-response 
+   (hash-ref RESPONSES code)
+   (make-hash h)))
 
 (define (base-response resp-code msg)
   (define json (make-hash))
@@ -37,13 +40,17 @@
   json)
 
 (define (extend-response h1 h2)
-  (hash-for-each h2 (λ (k v)
-                      (hash-set! h1 k v)))
+  
+  (hash-for-each (if (not (hash? h2))
+                     (make-hash h2)
+                     h2)
+                 (λ (k v)
+                   (hash-set! h1 k v)))
   h1)
 
 (define (make-response code msg #:extra [h `()])
   (define e (base-response code msg))
-  (define responsetype (if (regexp-match "ERROR" (->string code)) "error" "ok"))
+  (define responsetype (if (regexp-match "ERROR" (->string code)) "ERROR" "OK"))
   (add-response code (extend-response e (make-hash (cons `(responsetype . ,responsetype)
                                                       h))))
   )
@@ -61,11 +68,15 @@
 (make-response 'ERROR-READ-JSON "Cannot read JSON.")
 (make-response 'ERROR-WRONG-ACTION "Incorrect action for GET.")
 (make-response 'ERROR-MISSING-KEY "Missing key in JSON.")
+(make-response 'ERROR-LINK "Error linking code.")
+(make-response 'ERROR-BINHEX "Error binhexing code.")
+(make-response 'ERROR-READING-HEX "Error reading binhex file.")
 
 ;; Default successes
 (make-response 'OK "Everything's OK.")
 (make-response 'OK-BUILD "Build successful.")
 (make-response 'OK-ADD-FILE "File added.")
+(make-response 'OK-SESSION-ID "Session ID generated.")
     
 ;; 
 (define (error-response? r)
@@ -76,14 +87,17 @@
   (not (error-response? r)))
 
 (define-syntax-rule (try/catch param bool? alt body)
-  (with-handlers ([exn? (λ (e)
-                          (param alt))])
-    body
-    ))
+  (with-handlers ([exn:fail? (λ (e)
+                               (printf "~a~n" e)
+                               (param alt))])
+    (when (bool? (param))
+      body
+      )))
 
 (define-syntax-rule (set/catch param bool? alt body)
-  (with-handlers ([exn? (λ (e)
-                          (param alt))])
+  (with-handlers ([exn:fail? (λ (e)
+                               (printf "~a~n" e)
+                               (param alt))])
     (when (bool? (param))
       (param body))))
 

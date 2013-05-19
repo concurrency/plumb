@@ -3,98 +3,17 @@
          web-server/http
          web-server/servlet-env
          net/base64
+         json
          )
 
 (require "compile.rkt"
          "path-handling.rkt"
          "util.rkt"
          "response-handling.rkt"
-         json)
-
-(define (guarded-compile-session req session-id main-file)
-  (let ([resp (make-parameter (get-response 'ERROR-COMPILE-UNKNOWN))])
-
-    ;; Handle error cases.
-    (cond
-      [(not (session-exists? session-id))
-       (resp (get-response 'ERROR-BAD-ID))]
-      [(not (occam-file? main-file))
-       (resp (make-response 'ERROR-NOT-OCC-FILE))]
-      [else
-       (resp (compile-session req session-id main-file))]
-      )
-    
-    ;; Passing back to the webserver
-    (encode-response (resp))))
+         "session-management.rkt")
 
 
-(define (compile-session req session-id main-file)
-  (parameterize ([current-directory (session-dir session-id)])
-    ;; Assume a successful build.
-    (define resp (make-parameter (get-response 'OK-BUILD)))
 
-    (let* ([namer (name-generator main-file)]
-           [occ-name (namer 'occ)]
-           [tce-name (namer 'tce)]
-           [tbc-name (namer 'tbc)]
-           [hex-name (namer 'hex)])
-      
-      ;; This needs to be improved.
-      (printf "compile cmd: ~a~n" (compile-cmd occ-name))
-      
-      ;; Check and see that compilation worked.
-      (when (success-response? (resp))
-        (let ([result (handle-compilation session-id (compile-cmd occ-name))])
-          (unless (equal? result "SUCCESS")
-            (resp (get-response 'ERR-SYNTAX #:extra `((fromcompiler . ,result))))
-            )))
-
-      ;; If things compiled, then we should link.
-      (when (success-response? (resp))
-        (exe-in-session session-id (plinker-cmd tce-name tbc-name)))
-      
-      ;; If things linked, we should binhex.
-      (when (success-response? (resp))
-        (exe-in-session session-id (binhex-cmd tbc-name hex-name)))
-      
-      (when (success-response? (resp))
-        (when (not (file-exists? tce-name))
-          (error 'compile-handler "No TCE found: ~a" (current-seconds))))
-
-      (when (success-response? (resp))
-        (resp (extend-response 
-               (resp) 
-               `((hex . ,(file->string hex-name))))))
-        )
-      
-      
-      
-      ;; Destroy everything!
-      (cleanup-session session-id)
-      ;; Return the b64 encoded JSON file
-      (resp)
-      ))
-
-(define SESSIONS (make-hash))
-;; This should be an order-maintained list, not a hash
-(define (add-session id)
-  (hash-set! SESSIONS id (current-seconds)))
-(define (cleanup-session id)
-  '...)
-(define (session-exists? id)
-  (when (hash-ref SESSIONS id (lambda () false))
-    true))
-
-;; start-session :: -> int
-;; Returns a unique session ID used for adding files and compiling.
-(define (start-session req)
-  (let ([rs (format "jupiter-~a" (random-string 32))])
-    (add-session rs)
-    (make-session-dir rs)
-    ;; Return the session ID.
-    (response/xexpr 
-     #:code 200
-     rs)))
 
 
 
@@ -113,14 +32,14 @@
   (set/catch result string?
     (get-response 'ERROR-B64-DECODE)
     (format "~a" 
-          (base64-decode 
-           (string->bytes/utf-8 (result)))))
+            (base64-decode 
+             (string->bytes/utf-8 (result)))))
   
   ;; Read JSON
   (set/catch result string?
     (get-response 'ERROR-READ-JSON)
     (read-json (open-input-string (result))))
- 
+  
   ;; Check action
   (try/catch result hash?
     (get-response 'ERROR-WRONG-ACTION)
@@ -129,18 +48,81 @@
     )
   
   (result))
+
+(define (generate-names main-file)
+  (define names (make-hash))
+  (hash-set! names 'namer (name-generator main-file))
+  (hash-set! names 'main main-file)
+  (for ([ext '(occ tce tbc hex)])
+    (hash-set! names ext ((hash-ref names 'namer) ext)))
+  names)
+
+
+(define (guarded-compile-session req session-id main-file)
+  (define resp
+    (make-parameter (get-response 'ERROR-COMPILE-UNKNOWN)))
+    
+  ;; Handle error cases.
+  (cond
+    [(not (session-exists? session-id))
+     (printf "HERE~n")
+     (resp (get-response 'ERROR-BAD-ID))]
+    [(not (occam-file? main-file))
+     (resp (make-response 'ERROR-NOT-OCC-FILE))]
+    [else
+     (resp (compile-session req session-id main-file))]
+    )
   
+  ;; Passing back to the webserver
+  (encode-response (resp)))
+
+(define (compile-session req session-id main-file)
+  (parameterize ([current-directory (session-dir session-id)])
+    ;; Assume a successful build.
+    (define response (make-parameter (get-response 'OK-BUILD)))
+    (define names (generate-names main-file))
+    (cleanup-session session-id names)
+    
+    ;; This needs to be improved.
+    ;; (printf "compile cmd: ~a~n" (compile-cmd names))
+    
+    ;; #:extra `((fromcompiler . ,result))
+    
+    (response (compile session-id (compile-cmd names)))
+ 
+    ;; If things compiled, then we should link.
+    (set/catch response success-response?
+      (get-response 'ERROR-LINK)
+      (plink session-id names))
+    
+    ;; If things linked, we should binhex.
+    (set/catch response success-response?
+      (get-response 'ERROR-BINHEX)
+      (binhex session-id names))
+    
+    (set/catch response success-response?
+      (get-response 'ERROR-READING-HEX)
+      (extend-response 
+       (response) 
+       `((hex . ,(file->string (hash-ref names 'hex))))))
+    
+    ;; Destroy everything!
+    (cleanup-session session-id names)
+ 
+    ;; Return the b64 encoded JSON file
+    (response)
+    ))
+
 (define (add-file req b64)
   (define result (make-parameter (process-request b64 "add-file")))
   
   (try/catch result hash?
     (get-response 'ERROR-MISSING-KEY)
     (begin
-      (printf "--~n~a~n--~n" (result))
       (hash-ref (result) 'code)
       (hash-ref (result) 'filename)
       (hash-ref (result) 'sessionid)))
-
+  
   (when (success-response? (result))
     (let ([code (hash-ref (result) 'code)]
           [filename (hash-ref (result) 'filename)]
@@ -152,6 +134,18 @@
   (printf "~a~n" (result))
   (encode-response (result)))
 
+
+;; start-session :: -> int
+;; Returns a unique session ID used for adding files and compiling.
+(define (start-session req)
+  (define rs (format "jupiter-~a" (random-string 32)))
+  (add-session rs)
+  (make-session-dir rs)
+  ;; Return the session ID.
+  (encode-response 
+   (get-response 'OK-SESSION-ID #:extra `((sessionid . ,rs))))
+  )
+
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("start-session") start-session]
@@ -159,7 +153,13 @@
    [("compile" (string-arg) (string-arg)) guarded-compile-session]
    ))
 
+(define (init)
+  (unless (directory-exists? TEMPDIR)
+    (make-directory TEMPDIR))
+  (init-db))
+
 (define (serve)
+  (init)
   (with-handlers ([exn:fail? 
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch

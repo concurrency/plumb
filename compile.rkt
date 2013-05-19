@@ -1,11 +1,15 @@
 #lang racket
 (require "util.rkt"
-         "path-handling.rkt")
+         "path-handling.rkt"
+         "response-handling.rkt")
 
 (provide compile
+         binhex
+         output-exists?
          exe-in-session 
          compile-cmd
-         handle-compilation
+         compile
+         plink
          plinker-cmd
          binhex-cmd)
 
@@ -67,7 +71,7 @@
   (parameterize ([current-directory (session-dir id)])
     (system/exit-code cmd)))     
 
-(define (handle-compilation id cmd)
+(define (compile id cmd)
   (parameterize ([current-directory (session-dir id)])
     (let-values ([(stdout stdin pid stderr control)
                   (apply values (process cmd))])
@@ -77,7 +81,7 @@
         (case status
           [(running) (sleep 1) (loop (control 'status))]
           [(done-ok) 
-           (result "SUCCESS")]
+           (result (get-response 'OK))]
           [(done-error)
            (let ([err-msg (read-all stdout)]
                  [details (read-all stderr)])
@@ -85,18 +89,40 @@
              (close-input-port stderr)
              (close-output-port stdin)
              (control 'kill)
-             (result (format "~a:~n~a~n" err-msg details)))]))
+             (result (get-response
+                      'ERROR-SYNTAX
+                      #:extra
+                      `((errormessage
+                         ,(format "~a:~n~a~n" err-msg details)))))
+             )]))
       
       (result))))
     
-(define (compile-cmd fname)    
+(define (compile-cmd names)    
   (system-call
   COMPILE
   `(-t2 -V -etc -w -y -znd -znec 
          -udo -zncc -init -xin -mobiles 
          -zrpe -zcxdiv -zcxrem -zep -b -tle 
          -DEF (= F.CPU 16000000) -DEF OCCBUILD.TVM
-         ,fname)))
+         ,(hash-ref names 'occ))))
+
+(define (output-exists? id names ext)
+  (parameterize ([current-directory (session-dir id)])
+    (file-exists? (hash-ref names ext))))
+
+(define (plink session-id names)
+  (define result 
+    (make-parameter 
+     (exe-in-session 
+      session-id 
+      (plinker-cmd (hash-ref names 'tce)
+                   (hash-ref names 'tbc)))))
+
+  (cond
+    [(zero? (result)) (get-response 'OK)]
+    [else (error)]))
+  
 
 (define (plinker-cmd tce tbc)
   (system-call
@@ -105,8 +131,17 @@
         ,(->string (occam-lib-path 'forall))
         ,tce)))
 
+(define (binhex session-id names)
+  (define result
+    (make-parameter
+     (exe-in-session session-id (binhex-cmd names))))
+  (cond
+    [(zero? (result)) (get-response 'OK)]
+    [else (error)]))
+
 ;;FIXME : Magic Number (bytecode location)
-(define (binhex-cmd tbc hex)
+(define (binhex-cmd names)
   (system-call
    BINHEX
-   `(0x4F00 ,tbc ,hex)))
+   `(0x4F00 ,(hash-ref names 'tbc) 
+            ,(hash-ref names 'hex))))

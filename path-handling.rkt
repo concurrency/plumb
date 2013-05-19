@@ -4,7 +4,8 @@
 
 (define BINPATH (build-path (current-directory) "bin" "macosx"))
 (define LIBPATH (build-path (current-directory) "occam" "lib"))
-(define TEMPDIR (build-path "/tmp"))
+(define TEMPDIR (build-path "/tmp/jupiter"))
+(define SESSION-DB (build-path TEMPDIR "jupiter.sqlite"))
 
 (define (bp cmd)
   (build-path BINPATH cmd))

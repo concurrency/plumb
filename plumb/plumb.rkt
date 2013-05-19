@@ -37,12 +37,11 @@
        )))
 
 (define (start-session)
-  (let ([ip (get-pure-port (make-server-url 'start-session))])
-    (let ([id (read-line ip)])
-      (printf "~a~n" id)
-      (session-id id)
-      (close-input-port ip)
-      )))
+  (define resp-port (get-pure-port (make-server-url 'start-session)))
+  (define response 
+    (make-parameter (process-response resp-port)))
+  
+  (session-id (hash-ref (response) 'sessionid)))
 
 (define (json-encode h)
   (let ([os (open-output-string)])
@@ -75,23 +74,38 @@
 (define (add-file filename)
   (when (file-exists? filename)
     ;; Do I need to encode the file twice?
-    (let ([file-contents (b64-stream filename)]
+    (let ([file-contents (file->string filename)];(b64-stream filename)]
           [h (make-hash)])
       ;; Load the hash for shipment
       (hash-set! h 'filename filename)
       (hash-set! h 'code file-contents)
       (hash-set! h 'sessionid (session-id))
       (hash-set! h 'action "add-file")
-      (let ([resp (get-pure-port (make-server-url "add-file" 
-                                                  #:param
-                                                  (b64-encode (json-encode h))))])
-        (let ([h (process-response resp)])
-          (printf "[~a] ~a~n" 
-                  (hash-ref h 'code)
-                  (hash-ref h 'message)))
-          
+      (let* ([resp (get-pure-port 
+                    (make-server-url "add-file" 
+                                     #:param (b64-encode (json-encode h))))]
+             [h (process-response resp)])
+        (printf "[~a] ~a~n" 
+                (hash-ref h 'code)
+                (hash-ref h 'message))
         (close-input-port resp)
         ))))
+
+(define (compile id main)
+  (let* ([url (make-server-url "compile" #:param (list id main))]
+         [resp-port (get-pure-port url)]
+         [content (make-parameter (process-response resp-port))])
+      
+      (cond 
+        [(error-code? (content))
+         (printf "[~a] ~a~n" 
+                 (hash-ref (content) 'code)
+                 (hash-ref (content) 'message))]
+        [else
+         (printf "~a~n" (hash-ref (content) 'hex))])
+      
+      (close-input-port resp-port)))
+
 
 (define (process-response port)
   (define result (make-parameter port))
@@ -135,26 +149,6 @@
 (define (error-code? json)
   (let ([code (hash-ref json 'code (λ () DEFAULT-ERROR))])
     (not (member code SUCCESS-CODES))))
-
-(define (compile id main)
-  (let ([url (make-server-url "compile"
-                              #:param
-                              (list id main))])
-    (printf "~a~n" (url->string url))
-    (let ([resp-port (get-pure-port url)]
-          [content (make-parameter "")])
-      
-      (content (unpack resp-port))
-      
-      (cond 
-        [(error-code? (content))
-         (printf "[~a] ~a~n" 
-                 (hash-ref (content) 'code)
-                 (hash-ref (content) 'message))]
-        [else
-         (printf "~a~n" (hash-ref (content) 'hex))])
-      
-      (close-input-port resp-port))))
 
 (define plumb 
   (command-line

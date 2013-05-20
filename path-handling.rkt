@@ -1,6 +1,7 @@
 #lang racket
 
-(require "debug.rkt")
+(require "debug.rkt"
+         "util.rkt")
 
 (provide (all-defined-out))
 
@@ -30,6 +31,8 @@
 
 (define (load-mac-config)
   (config (empty-config))
+  (add-config (config) 'HOST-TYPE 'mac)
+  
   (add-config (config) 'BINPATH (build-path (current-directory) "bin" "macosx"))
   (add-config (config) 'LIBPATH (build-path (current-directory) "occam" "lib"))
   (add-config (config) 'INCLUDE (build-path (current-directory) "occam" "include"))
@@ -52,7 +55,17 @@
   ;; Arduino Config (plumb.rkt only)
   (add-config (config) 'SERIAL-PORT false)
   (add-config (config) 'BOARD false)
-  (add-config (config) 'AVRDUDE.CONF (build-path (current-directory) "occam" "conf" "avrdude.conf"))
+  ;; This will have to change for Windows. Actually, for the GUI app in general.
+  (add-config (config) 'AVRDUDE.CONF (build-path (current-directory)
+                                                 "client-config" 
+                                                 (->string (get-config 'HOST-TYPE))
+                                                 "conf"
+                                                 "avrdude.conf"))
+  (add-config (config) 'AVRDUDE (build-path (current-directory)
+                                            "client-config"
+                                            (->string (get-config 'HOST-TYPE))
+                                            "bin"
+                                            "avrdude"))
   
   
   (init-config 'mac)

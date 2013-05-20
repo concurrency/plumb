@@ -178,10 +178,10 @@
     
   (debug 'FIRMWARE "~a" (response))
   
-  ;; Read it all
+  ;; Read it all; just a .hex file, so it is plain text.
   (set/catch response port?
     (get-response 'ERROR)
-    (make-hash `((firmware . ,(read-all (response))))))
+    (make-hash `((hex . ,(read-all (response))))))
   
   (debug 'FIRMWARE "~a" (response))
   

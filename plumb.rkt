@@ -6,6 +6,7 @@
          json)
 
 (require "response-handling.rkt"
+         "path-handling.rkt"
          "util.rkt"
          "debug.rkt"
          )
@@ -178,11 +179,17 @@
       (debug 'BOARD-CONFIG "~a" (content))
       )
     
-    (content)))
+    ;; Store the config.
+    (add-config (config) 'BOARD (content))
     
+    (content)))
+
 ;tvm-avr-atmega328p-16000000-arduino.hex
-(define (retrieve-board-firmware firm)
-    (let* ([url (make-server-url "firmware" firm)]
+(define (retrieve-board-firmware board)
+  ;; First, get the board config
+  (retrieve-board-config board)
+  ;; Now, fetch the firmware
+  (let* ([url (make-server-url "firmware" (hash-ref (get-config 'BOARD) 'firmware))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
@@ -190,7 +197,6 @@
       (get-response 'ERROR)
       (debug 'FIRMWARE "~a" (content))
       )
-    
     (content)))
 
 (define plumb 
@@ -238,10 +244,11 @@
                        "Fetch configuration data for a given board."
                        (retrieve-board-config board)]
    
-   [("--get-firmware") firmware
-                   "Retrieve firmware for board."
-                   (retrieve-board-firmware firmware)
-                   ]
+   [("--get-firmware") board
+                       "Retrieve firmware for board."
+                       
+                       (retrieve-board-firmware board)
+                       ]
    
    #:args filenames
    (for-each (λ (f)

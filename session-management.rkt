@@ -29,10 +29,11 @@
   (apply query-rows (append (list (<c>) sql) args)))
 
 (define (sql:init-db)
-  (format "CREATE TABLE IF NOT EXISTS sessions (uid INT AUTO_INCREMENT, sessionid TEXT, created INT);"))
+  (format "CREATE TABLE IF NOT EXISTS sessions (sessionid TEXT, created INT);"))
 (define (init-db)
   (<c> (sqlite3-connect #:database SESSION-DB #:mode 'create))
-  (qe (sql:init-db)))
+  (qe (sql:init-db))
+  )
 
 (define (sql:add-session)
   "INSERT INTO sessions (sessionid, created) VALUES ($1, $2);")
@@ -49,8 +50,28 @@
 (define (remove-session id)
   (qe (sql:remove-session) id))
 
+(define (sql:all-sessions)
+  "SELECT * FROM sessions;")
+(define (all-sessions)
+  (qr (sql:all-sessions)))
+
+(define DAY (* 24 (* 60 60)))
+(define MINUTE 60)
+(define session-timeout (make-parameter DAY))
+
+(define (cleanup-old-sessions)
+  (define now (current-seconds))
+  (for ([s (all-sessions)])
+    ;; Get rid of sessions more than 24 hours old
+    ;;(printf "~a~n" (- now (vector-ref s 1)))
+    (when (> (- now (vector-ref s 1)) (session-timeout))
+      ;;(printf "DELETING ~a~n" (vector-ref s 0))
+      (cleanup-session (vector-ref s 0))
+      )))
+
 ;; This should be an order-maintained list, not a hash
 (define (cleanup-session id)
+  ;; Now, cleanup the specified session.
   (when (session-exists? id)
     ;; Remove it from the DB
     (remove-session id)
@@ -62,4 +83,5 @@
           (delete-file f)))
       ;; Then the directory
       (delete-directory (session-dir id)))
-    ))
+    )
+  )

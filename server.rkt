@@ -80,6 +80,10 @@
     
     ;; Destroy everything!
     (cleanup-session session-id)
+    
+    ;; Cleanup old sessions, too.
+    ;; (It would be nice if this was automated.)
+    (cleanup-old-sessions)
  
     ;; Return the b64 encoded JSON file
     (response)

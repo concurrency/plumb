@@ -11,33 +11,22 @@
 (define VERSION "1.0.0")
 (define verbose-mode (make-parameter false))
 (define session-id   (make-parameter false))
+(define timeout (make-parameter 15))
 
 (define HOST "127.0.0.1")
 (define PORT 9000)
 
-(define (make-server-url cmd #:param [param false])
-  
-  (string->url 
-   (if param
-       
-       (if (list? param)
-           (format "http://~a:~a/~a~a"
-                   HOST 
-                   PORT
-                   cmd
-                   (apply string-append (map (λ (p) (format "/~a" p)) param)))
-           (format "http://~a:~a/~a/~a"
-                   HOST
-                   PORT
-                   cmd
-                   param
-                   ))
-       
-       (format "http://~a:~a/~a" HOST PORT cmd)
-       )))
+(define make-server-url 
+  (λ args
+    (string->url
+     (format "http://~a:~a~a"
+             HOST
+             PORT
+             (apply string-append
+                    (map (λ (p) (format "/~a" p)) args))))))
 
 (define (start-session)
-  (define resp-port (get-pure-port (make-server-url 'start-session)))
+  (define resp-port (get-pure-port (make-server-url "start-session")))
   (define response 
     (make-parameter (process-response resp-port)))
   
@@ -82,7 +71,7 @@
   (set/catch result bytes?
     (get-response 'ERROR-HTTP-GET)
     (get-pure-port
-     (make-server-url "add-file" #:param (result))))
+     (make-server-url "add-file" (result))))
   
   ;; Process the result
   (set/catch result port?
@@ -92,24 +81,63 @@
   (result))
 
 (define (compile id main)
-  (let* ([url (make-server-url "compile" #:param (list id main))]
+  (let* ([url (make-server-url "compile" id (extract-filename main))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
-      
-      (cond 
-        [(error-response? (content))
-         (printf "[~a] ~a~n" 
-                 (hash-ref (content) 'code)
-                 (hash-ref (content) 'message))]
-        [else
-         (printf "~a~n" (hash-ref (content) 'hex))])
-      
-      (close-input-port resp-port)))
+    
+    (cond 
+      [(error-response? (content))
+       (printf "[~a] ~a~n" 
+               (hash-ref (content) 'code)
+               (hash-ref (content) 'message))]
+      [else
+       (printf "~a~n" (hash-ref (content) 'hex))])
+    
+    (close-input-port resp-port)))
 
 (define (show-response res)
   (printf "[~a] ~a~n"
           (hash-ref res 'code)
           (hash-ref res 'message)))
+
+
+(define (build dir main)
+  (with-timeout
+    (parameterize ([current-directory dir])
+      ;; Get a new session ID
+      (start-session)
+      ;; Add all the relevant files
+      (for ([f (directory-list)])
+        (when (file-exists? f)
+          (when (member (->sym (file-extension f)) '(occ inc module))
+            (add-file f))))
+      ;; Compile it
+      (compile (session-id) main))))
+
+(define-syntax-rule (thunk body ...)
+  (λ () body ...))
+
+(define-syntax-rule (while test body ...)
+  (let loop ()
+    (when test
+      body ...
+      (loop))))
+
+(define-syntax-rule (with-timeout body ...)
+  (let ([run-id (thread (thunk body ...))]
+        [start-time (current-seconds)]
+        [current-time (make-parameter (current-seconds))])
+    
+    ;; Run until we timeout
+    (while (> (timeout) (- (current-time) start-time))
+      (sleep 1)
+      (current-time (current-seconds)))
+    
+    (when (thread-running? run-id)
+      (kill-thread run-id)
+      (printf "Timed out in ~a seconds.~n" (timeout)))))
+
+
 
 (define plumb 
   (command-line
@@ -139,7 +167,13 @@
                        "Compile <main-file>."
                        (compile (session-id) main)]
    
+   [("-t" "--timeout") t
+                       "Set the timeout in seconds."
+                       (timeout (string->number t))]
    
+   [("--build") dir main
+                "Compile project <dir>, using <main> as the start."
+                (build dir main)]
    
    #:args filenames
    (for-each (λ (f)

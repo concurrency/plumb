@@ -24,17 +24,32 @@
 
 (define (guarded-compile-session req session-id main-file)
   (define resp
-    (make-parameter (get-response 'ERROR-COMPILE-UNKNOWN)))
-    
-  ;; Handle error cases.
-  (cond
-    [(not (session-exists? session-id))
-     (resp (get-response 'ERROR-BAD-ID))]
-    [(not (occam-file? main-file))
-     (resp (make-response 'ERROR-NOT-OCC-FILE))]
-    [else
-     (resp (compile-session req session-id main-file))]
-    )
+    (make-parameter (get-response 'OK)))
+ 
+  ;; Check that we have a valid session.
+  (try/catch resp success-response?
+    (get-response 'ERROR-SESSION-ON-WALKABOUT)
+    (unless (session-exists? session-id)
+      (error (format "Session on walkabout: ~a" session-id))))
+  
+  ;; Make sure it exists
+  (try/catch resp success-response?
+    (get-response 'ERROR)
+    (parameterize ([current-directory (session-dir session-id)])
+      (unless (file-exists? (extract-filename main-file))
+        (error (format "File does not exist: ~a" main-file)))))
+  
+  ;; Make sure it is an occam file.
+  (try/catch resp success-response?
+    (get-response 'ERROR-NOT-OCC-FILE)
+    (unless (occam-file? (extract-filename main-file))
+      (error (format "Not an occam file: ~a" main-file))))
+  
+  
+  ;; Compile. The result will be a response.
+  (set/catch resp success-response?
+    (get-response 'ERROR-COMPILE-UNKNOWN)
+    (compile-session req session-id main-file))
   
   ;; Passing back to the webserver
   (encode-response (resp)))
@@ -44,8 +59,7 @@
     ;; Assume a successful build.
     (define response (make-parameter (get-response 'OK-BUILD)))
     (define names (generate-names main-file))
-    (cleanup-session session-id names)
-    
+ 
     (response (compile session-id (compile-cmd names)))
  
     ;; If things compiled, then we should link.
@@ -65,7 +79,7 @@
        `((hex . ,(file->string (hash-ref names 'hex))))))
     
     ;; Destroy everything!
-    (cleanup-session session-id names)
+    (cleanup-session session-id)
  
     ;; Return the b64 encoded JSON file
     (response)
@@ -74,12 +88,19 @@
 (define (add-file req b64)
   (define result (make-parameter (process-request b64 "add-file")))
   
+  ;; Make sure we have all the needed keys
   (try/catch result hash?
     (get-response 'ERROR-MISSING-KEY)
     (begin
       (hash-ref (result) 'code)
       (hash-ref (result) 'filename)
       (hash-ref (result) 'sessionid)))
+  
+  ;; Make sure the session exists, and it isn't a stale key
+  (try/catch result hash?
+    (get-response 'ERROR-SESSION-ON-WALKABOUT)
+    (unless (session-exists? (hash-ref (result) 'sessionid))
+      (error (format "Session ID unknown: ~a" (hash-ref (result) 'sessionid)))))
   
   (set/catch result success-response?
     (get-response 'ERROR-ADD-FILE)

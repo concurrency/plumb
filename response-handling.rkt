@@ -133,6 +133,7 @@
 (make-response 'ERROR-JSON-ENCODE "Cannot encode data for JSON upload.")
 (make-response 'ERROR-HTTP-GET "Error in HTTP GET.")
 (make-response 'ERROR-PROCESS-RESPONSE "Error processing response from server.")
+(make-response 'ERROR-SESSION-ON-WALKABOUT "Unkown session ID.")
 
 
 ;; Default successes

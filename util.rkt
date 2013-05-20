@@ -54,6 +54,8 @@
 (define (occam-file? filename)
   (regexp-match "\\.occ$" filename))
 
+(define (file-extension filename)
+  (third (regexp-match "^(.*)\\.(.*?)$" (extract-filename filename))))
 
 (define (read-all port)
   (let ([content ""])

@@ -1,7 +1,8 @@
 #lang racket
 (require "util.rkt"
          "path-handling.rkt"
-         "response-handling.rkt")
+         "response-handling.rkt"
+         "session-management.rkt")
 
 (provide compile
          binhex

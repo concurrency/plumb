@@ -1,0 +1,19 @@
+#lang racket
+
+(provide (all-defined-out))
+
+(define FLAGS (make-parameter '()))
+
+(define (enable-debug! key)
+  (FLAGS (cons key (FLAGS))))
+
+(define (disable-debug! key)
+  (FLAGS (filter (λ (v)
+                   (not (equal? v key)))
+                 (FLAGS))))
+
+(define-syntax-rule (debug key msg args ...)
+  (when (member key (FLAGS))
+    (printf "[~a] ~a~n"
+            key
+            (format msg args ...))))

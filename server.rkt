@@ -10,7 +10,8 @@
          "path-handling.rkt"
          "util.rkt"
          "response-handling.rkt"
-         "session-management.rkt")
+         "session-management.rkt"
+         "debug.rkt")
 
 
 (define (generate-names main-file)
@@ -121,12 +122,13 @@
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
 (define (start-session req)
-  (define rs (format "jupiter-~a" (random-string 32)))
-  (add-session rs)
-  (make-session-dir rs)
+  (define session-id (format "jupiter-~a" (random-string 32)))
+  (debug 'START-SESSION "session-id: ~a~n" session-id)
+  (add-session session-id)
+  (make-session-dir session-id)
   ;; Return the session ID.
   (encode-response 
-   (get-response 'OK-SESSION-ID #:extra `((sessionid . ,rs))))
+   (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))
   )
 
 (define-values (dispatch blog-url)
@@ -137,18 +139,32 @@
    ))
 
 (define (init)
-  (unless (directory-exists? TEMPDIR)
-    (make-directory TEMPDIR))
+  (unless (directory-exists? (get-config 'TEMPDIR))
+    (make-directory (get-config 'TEMPDIR)))
   (init-db))
 
+
+(define (load-config name)
+  (debug 'CONFIG "Loading config: ~a~n" name)
+  (case (->sym name)
+    [(mac osx) (load-mac-config)
+               (set-config 'mac)
+               ]
+    [(bereacs) (load-bereacs-config)
+               (set-config 'bereacs)
+               ]))
+
+
+                 
+   
 (define (serve)
   (init)
   (with-handlers ([exn:fail? 
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch
                    #:launch-browser? false
-                   #:port 9000
-                   #:listen-ip #f ;"192.168.254.201" ; remote.org
+                   #:port (get-config 'PORT)
+                   #:listen-ip (get-config 'LISTEN-IP) ;"192.168.254.201" ; remote.org
                    #:server-root-path (current-directory)
                    #:extra-files-paths 
                    (list 
@@ -157,4 +173,19 @@
                    #:servlet-regexp #rx""
                    )))
 
-(serve)
+
+(define server 
+  (command-line
+   #:program "server"
+   #:multi
+   [("-d" "--debug") flag
+                     "Enable debug flag."
+                     (enable-debug! (->sym flag))]
+   
+   #:once-each 
+   [("--config") name
+                "Choose platform config."
+                (load-config name)
+                (serve)]
+   
+   ))

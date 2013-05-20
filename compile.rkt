@@ -101,7 +101,7 @@
     
 (define (compile-cmd names)    
   (system-call
-  COMPILE
+  (get-config 'COMPILE)
   `(-t2 -V -etc -w -y -znd -znec 
          -udo -zncc -init -xin -mobiles 
          -zrpe -zcxdiv -zcxrem -zep -b -tle 
@@ -127,7 +127,7 @@
 
 (define (plinker-cmd tce tbc)
   (system-call
-   LINKER
+   (get-config 'LINKER)
    `(-s -o ,tbc
         ,(->string (occam-lib-path 'forall))
         ,tce)))
@@ -143,6 +143,6 @@
 ;;FIXME : Magic Number (bytecode location)
 (define (binhex-cmd names)
   (system-call
-   BINHEX
+   (get-config 'BINHEX)
    `(0x4F00 ,(hash-ref names 'tbc) 
             ,(hash-ref names 'hex))))

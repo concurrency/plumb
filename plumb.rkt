@@ -6,7 +6,9 @@
          json)
 
 (require "response-handling.rkt"
-         "util.rkt")
+         "util.rkt"
+         "debug.rkt"
+         )
 
 (define VERSION "1.0.0")
 (define verbose-mode (make-parameter false))
@@ -30,23 +32,29 @@
   (define response 
     (make-parameter (get-response 'ERROR)))
   
-  (with-timeout
-    
-    (set/catch response success-response?
-      (get-response 'ERROR-NO-CONNECTION)
-      (get-pure-port (make-server-url "start-session")))
-    
-    (try/catch response port?
-      (get-response 'ERROR-PROCESS-RESPONSE)
-      (process-response (response)))
-    
-    (try/catch response hash?
-      (get-response 'ERROR-BAD-RESPONSE)
-      (hash-ref (response) 'sessionid))
-    
-    (session-id (response)))
+  (debug 'START-SESSION "~a" (response))
   
-    (response))
+  (set/catch response error-response?
+    (get-response 'ERROR-NO-CONNECTION)
+    (get-pure-port (make-server-url "start-session")))
+  
+  (debug 'START-SESSION "~a" (response))
+  
+  (set/catch response port?
+    (get-response 'ERROR-PROCESS-RESPONSE)
+    (process-response (response)))
+  
+  (debug 'START-SESSION "~a" (response))
+  
+  (set/catch response hash?
+    (get-response 'ERROR-BAD-RESPONSE)
+    (hash-ref (response) 'sessionid))
+  
+  (debug 'START-SESSION "~a" (response))
+  
+  (session-id (response))
+  
+  (response))
 
 (define (json-encode h)
   (let ([os (open-output-string)])
@@ -119,16 +127,16 @@
 
 (define (build dir main)
   (with-timeout
-    (parameterize ([current-directory dir])
-      ;; Get a new session ID
-      (start-session)
-      ;; Add all the relevant files
-      (for ([f (directory-list)])
-        (when (file-exists? f)
-          (when (member (->sym (file-extension f)) '(occ inc module))
-            (add-file f))))
-      ;; Compile it
-      (compile (session-id) main))))
+   (parameterize ([current-directory dir])
+     ;; Get a new session ID
+     (start-session)
+     ;; Add all the relevant files
+     (for ([f (directory-list)])
+       (when (file-exists? f)
+         (when (member (->sym (file-extension f)) '(occ inc module))
+           (add-file f))))
+     ;; Compile it
+     (compile (session-id) main))))
 
 (define-syntax-rule (thunk body ...)
   (λ () body ...))
@@ -155,13 +163,15 @@
 
 (define-syntax-rule (with-timeout body ...)
   (with-timeout* (timeout) body ...))
-  
-
-
 
 (define plumb 
   (command-line
    #:program "plumb"
+   #:multi
+   [("-d" "--debug") flag
+                     "Enable debug flag."
+                     (enable-debug! (->sym flag))]
+   
    #:once-each
    [("-v" "--version") "Display current plumb version and exit."
                        (printf "plumb version ~a~n" VERSION)
@@ -172,7 +182,7 @@
    
    [("--start-session") "Start a session."
                         (start-session)
-                        (printf "[~a] Session ID~n" (session-id))
+                        (printf "~a~n" (session-id))
                         (exit)]
    
    [("-s" "--session-id") id 
@@ -194,6 +204,7 @@
    [("--build") dir main
                 "Compile project <dir>, using <main> as the start."
                 (build dir main)]
+   
    
    #:args filenames
    (for-each (λ (f)

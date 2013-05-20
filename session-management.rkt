@@ -3,7 +3,8 @@
 (require db)
 (require "path-handling.rkt"
          "response-handling.rkt"
-         "util.rkt")
+         "util.rkt"
+         "debug.rkt")
 
 (provide (all-defined-out))
 
@@ -13,7 +14,7 @@
 ;; Make sure this is a good session ID
 ;; This could be the gatekeeper
 (define (session-dir session-id)
-  (build-path TEMPDIR session-id))
+  (build-path (get-config 'TEMPDIR) session-id))
 
 (define (add-session-file session-id filename code)
   (parameterize ([current-directory (session-dir session-id)])
@@ -31,7 +32,7 @@
 (define (sql:init-db)
   (format "CREATE TABLE IF NOT EXISTS sessions (sessionid TEXT, created INT);"))
 (define (init-db)
-  (<c> (sqlite3-connect #:database SESSION-DB #:mode 'create))
+  (<c> (sqlite3-connect #:database (get-config 'SESSION-DB) #:mode 'create))
   (qe (sql:init-db))
   )
 

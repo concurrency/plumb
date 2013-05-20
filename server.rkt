@@ -205,20 +205,6 @@
   (unless (directory-exists? (get-config 'TEMPDIR))
     (make-directory (get-config 'TEMPDIR)))
   (init-db))
-
-
-(define (load-config name)
-  (debug 'CONFIG "Loading config: ~a~n" name)
-  (case (->sym name)
-    [(mac osx) (load-mac-config)
-               (set-config 'mac)
-               ]
-    [(bereacs) (load-bereacs-config)
-               (set-config 'bereacs)
-               ]))
-
-
-                 
    
 (define (serve)
   (init)

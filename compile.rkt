@@ -2,7 +2,8 @@
 (require "util.rkt"
          "path-handling.rkt"
          "response-handling.rkt"
-         "session-management.rkt")
+         "session-management.rkt"
+         "code-execution.rkt")
 
 (provide compile
          binhex
@@ -23,54 +24,8 @@
 ;; Note we don't insert hyphens, but we make sure
 ;; spaces come out right.
 
-(struct cmd (app args) #:transparent)
-(struct arg2 (flag value) #:transparent)
-(struct arg1 (flag) #:transparent)
-(struct set (param value) #:transparent)
-(struct nospace (flag value) #:transparent)
 
-(define (parse sexp)
-  (match sexp
-    [`(= ,rand1 ,rand2)
-     (set rand1 rand2)]
-    [`(nospace ,flag ,val)
-     (nospace flag val)]
-    [`(,command ,args ...)
-     (cmd command (map parse args))]
-    ;; FIXME: The list of length two is subsumed by
-    ;; the previous rule... unnecessary?
-    [`(,flag ,value)
-     (arg2 flag value)]
-    [flag/value
-     (arg1 flag/value)]))
-
-
-(define (render ast)
-  (match ast
-    [(struct cmd (command args))
-     (format "~a ~a" 
-             command
-             (apply string-append
-                    (list-intersperse (map render args) " ")))]
-    [(struct set (param value))
-     (format "~a=~a" param value)]
-    [(struct arg2 (flag value))
-     (format "~a ~a" flag value)]
-    [(struct arg1 (flag/value))
-     (format "~a" flag/value)]
-    [(struct nospace (flag value))
-     (format "~a~a" flag value)]
-    ))
-
-(define (system-call prog flags)
-  (format "~a ~a"
-          ;(build-bin-path prog)
-          prog
-          (render (parse flags))))
-
-(define (exe-in-session id cmd)
-  (parameterize ([current-directory (session-dir id)])
-    (system/exit-code cmd)))     
+     
 
 (define (compile id cmd)
   (parameterize ([current-directory (session-dir id)])

@@ -9,6 +9,7 @@
          "path-handling.rkt"
          "util.rkt"
          "debug.rkt"
+         "upload.rkt"
          )
 
 (define VERSION "1.0.0")
@@ -82,6 +83,8 @@
                  (sessionid . ,(session-id))
                  (action . "add-file"))))
   
+  (debug 'ADD-FILE "~a~n" (result))
+  
   ;; Encode the jsexpr
   (set/catch result hash?
     (get-response 'ERROR-JSON-ENCODE)
@@ -110,15 +113,13 @@
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
+    (close-input-port resp-port)
+    
     (cond 
       [(error-response? (content))
-       (printf "[~a] ~a~n" 
-               (hash-ref (content) 'code)
-               (hash-ref (content) 'message))]
+       (content)]
       [else
-       (printf "~a~n" (hash-ref (content) 'hex))])
-    
-    (close-input-port resp-port)
+       (hash-ref (content) 'hex)])
     ))
 
 (define (show-response res)
@@ -128,20 +129,17 @@
 
 
 (define (build dir main)
-  (with-timeout
-   (parameterize ([current-directory dir])
-     ;; Get a new session ID
-     (start-session)
-     ;; Add all the relevant files
-     (for ([f (directory-list)])
-       (when (file-exists? f)
-         (when (member (->sym (file-extension f)) '(occ inc module))
-           (add-file f))))
-     ;; Compile it
-     (compile (session-id) main)
-     ;; Make this thread die afterwards
-     (exit)
-     )))
+  (parameterize ([current-directory dir])
+    ;; Get a new session ID
+    (start-session)
+    ;; Add all the relevant files
+    (for ([f (directory-list)])
+      (when (file-exists? f)
+        (when (member (->sym (file-extension f)) '(occ inc module))
+          (add-file f))))
+    ;; Compile it
+    (compile (session-id) main)
+    ))
 
 (define-syntax-rule (thunk body ...)
   (λ () body ...))
@@ -232,9 +230,9 @@
                        "Compile <main-file>."
                        (compile (session-id) main)]
    
-   [("-t" "--timeout") t
+   [("-t" "--timeout") sec
                        "Set the timeout in seconds."
-                       (timeout (string->number t))]
+                       (timeout (string->number sec))]
    
    [("--build") dir main
                 "Compile project <dir>, using <main> as the start."
@@ -246,12 +244,99 @@
    
    [("--get-firmware") board
                        "Retrieve firmware for board."
-                       
-                       (retrieve-board-firmware board)
-                       ]
+                       (retrieve-board-firmware board)]
    
    #:args filenames
    (for-each (λ (f)
                (show-response (add-file f)))
              filenames)
    ))
+
+
+(define (options serial.port)
+  (printf "Options ~a~n"
+          (list-intersperse (append
+                             (if (serial.port)
+                                 '(f b)
+                                 '())
+                             '(h a d p)) ",")))
+  
+;; I need a non-stateless thing.
+(define (plumb-repl)
+  
+  (define session-id (make-parameter (start-session)))
+  (define board.config (make-parameter false))
+  (define serial.port (make-parameter false))
+  (define code.hex (make-parameter false))
+  (define firmware.hex (make-parameter false))
+  (load-config (system-type))
+  
+  (printf "plumb repl session: ~a~n" (session-id))
+  (options serial.port)
+  (printf "> ")
+  
+  
+  (let main-loop ([cmd (read)])
+    ;; Input handler
+    (case (->sym cmd)
+      [(h help)
+       (printf "HELP~n")]
+      
+      [(d debug)
+       (let ([flag (read)])
+         (printf "Enabling debug flag: ~a~n" flag)
+         (enable-debug! (->sym flag)))]
+      
+      [(a add-file) 
+       (printf "session-id: ~a~n" (session-id))
+       (let ([filename (read)])
+         (show-response (add-file (->string filename))))]
+      
+      [(b build) 
+       (let* ([board (read)]
+             [dir (read)]
+             [main-file (read)]
+             [hex (build (->string dir) (->string main-file))]
+             [full-config (retrieve-board-config board)]
+             )
+         (board.config full-config)
+         (debug 'USER-CODE "Board Config: ~a~n" (board.config))
+         (code.hex hex)
+         (debug 'USER-CODE "~a" (code.hex))
+         (avrdude-code (serial.port) (code.hex))
+         )]
+      
+      [(f firmware)
+       (let* ([board (read)]
+              [full-config (retrieve-board-firmware (->string board))])
+         (board.config full-config)
+         (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
+         (firmware.hex (hash-ref (board.config) 'hex))
+         (avrdude-firmware (serial.port)))]
+      
+      [(p port)
+       (newline)
+       (for ([a (list-arduinos)]
+             [n (length (list-arduinos))])
+         (printf "[~a] ~a~n" n (build-port a)))
+       (newline)
+       (printf "Select serial port~n[port] ")
+       (let ([port (read)])
+         (serial.port 
+          (build-port
+           (list-ref 
+            (list-arduinos)
+            (string->number (->string port))))))]
+      
+      
+      
+      [(q quit) (printf "Exiting...~n")
+                (sleep 1)
+                (exit)])
+    
+    (options serial.port)
+    (printf "> ")
+    (main-loop (read))
+    ))
+
+(plumb-repl)

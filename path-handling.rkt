@@ -28,6 +28,15 @@
   (hash-ref (config) k))
 
 
+(define (load-config name)
+  (debug 'CONFIG "Loading config: ~a~n" name)
+  (case (->sym name)
+    [(mac osx macosx) (load-mac-config)
+               (set-config 'mac)
+               ]
+    [(bereacs) (load-bereacs-config)
+               (set-config 'bereacs)
+               ]))
 
 (define (load-mac-config)
   (config (empty-config))

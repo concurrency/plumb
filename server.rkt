@@ -25,7 +25,7 @@
 (define (guarded-compile-session req session-id main-file)
   (define resp
     (make-parameter (get-response 'OK)))
- 
+  
   ;; Check that we have a valid session.
   (try/catch resp success-response?
     (get-response 'ERROR-SESSION-ON-WALKABOUT)
@@ -59,9 +59,9 @@
     ;; Assume a successful build.
     (define response (make-parameter (get-response 'OK-BUILD)))
     (define names (generate-names main-file))
- 
+    
     (response (compile session-id (compile-cmd names)))
- 
+    
     ;; If things compiled, then we should link.
     (set/catch response success-response?
       (get-response 'ERROR-LINK)
@@ -84,7 +84,7 @@
     ;; Cleanup old sessions, too.
     ;; (It would be nice if this was automated.)
     (cleanup-old-sessions)
- 
+    
     ;; Return the b64 encoded JSON file
     (response)
     ))

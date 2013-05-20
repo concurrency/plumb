@@ -26,11 +26,27 @@
                     (map (λ (p) (format "/~a" p)) args))))))
 
 (define (start-session)
-  (define resp-port (get-pure-port (make-server-url "start-session")))
-  (define response 
-    (make-parameter (process-response resp-port)))
   
-  (session-id (hash-ref (response) 'sessionid)))
+  (define response 
+    (make-parameter (get-response 'ERROR)))
+  
+  (with-timeout
+    
+    (set/catch response success-response?
+      (get-response 'ERROR-NO-CONNECTION)
+      (get-pure-port (make-server-url "start-session")))
+    
+    (try/catch response port?
+      (get-response 'ERROR-PROCESS-RESPONSE)
+      (process-response (response)))
+    
+    (try/catch response hash?
+      (get-response 'ERROR-BAD-RESPONSE)
+      (hash-ref (response) 'sessionid))
+    
+    (session-id (response)))
+  
+    (response))
 
 (define (json-encode h)
   (let ([os (open-output-string)])
@@ -123,19 +139,23 @@
       body ...
       (loop))))
 
-(define-syntax-rule (with-timeout body ...)
+(define-syntax-rule (with-timeout* time body ...)
   (let ([run-id (thread (thunk body ...))]
         [start-time (current-seconds)]
         [current-time (make-parameter (current-seconds))])
     
     ;; Run until we timeout
-    (while (> (timeout) (- (current-time) start-time))
+    (while (> time (- (current-time) start-time))
       (sleep 1)
       (current-time (current-seconds)))
     
     (when (thread-running? run-id)
       (kill-thread run-id)
-      (printf "Timed out in ~a seconds.~n" (timeout)))))
+      (printf "Timed out in ~a seconds.~n" time))))
+
+(define-syntax-rule (with-timeout body ...)
+  (with-timeout* (timeout) body ...))
+  
 
 
 

@@ -26,6 +26,8 @@
 (define (get-config k)
   (hash-ref (config) k))
 
+
+
 (define (load-mac-config)
   (config (empty-config))
   (add-config (config) 'BINPATH (build-path (current-directory) "bin" "macosx"))
@@ -34,12 +36,24 @@
   (add-config (config) 'TEMPDIR (build-path "/tmp/jupiter"))
   (add-config (config) 'SESSION-DB (build-path (get-config 'TEMPDIR) "jupiter.sqlite"))
   
+  ;; Server Configs
+  (add-config (config) 'CONFIG   (build-path (current-directory) "server-config"))
+  (add-config (config) 'CONFIG-BOARDS (build-path (get-config 'CONFIG) "boards"))
+  (add-config (config) 'FIRMWARES (build-path (current-directory) "server-config" "firmwares"))
+  
   (add-config (config) 'COMPILE  (bp "occ21"))
   (add-config (config) 'LINKER   (bp "plinker.pl"))
   (add-config (config) 'BINHEX   (bp "binary-to-ihex"))
   
+  ;; Server Config
   (add-config (config) 'PORT 9000)
   (add-config (config) 'LISTEN-IP false)
+  
+  ;; Arduino Config (plumb.rkt only)
+  (add-config (config) 'SERIAL-PORT false)
+  (add-config (config) 'BOARD false)
+  (add-config (config) 'AVRDUDE.CONF (build-path (current-directory) "occam" "conf" "avrdude.conf"))
+  
   
   (init-config 'mac)
   (add-host 'mac (config))

@@ -87,7 +87,10 @@
 (define (get-response code #:extra [h '()])
   (extend-response 
    (hash-ref RESPONSES code)
-   (make-hash h)))
+   (cond 
+     [(list? h) (make-hash h)]
+     [(hash? h) h]
+     [else (error "Error in get-response.")])))
 
 (define (base-response resp-code msg)
   (define json (make-hash))
@@ -138,6 +141,9 @@
 (make-response 'ERROR-NO-CONNECTION "Cannot make connection to compile server.")
 (make-response 'ERROR-PROCESS-RESPONSE "Cannot process response from server.")
 (make-response 'ERROR-BAD-RESPONSE "Response decoded, but data bad.")
+
+(make-response 'ERROR-READ-CONFIG "Cannot read/find config file.")
+(make-response 'ERROR-CONVERT-CONFIG "Cannot convert config file.")
 
 ;; Default successes
 (make-response 'OK "Everything's OK.")

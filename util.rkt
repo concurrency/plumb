@@ -68,6 +68,17 @@
       )
     content))
 
+(define (read-all/bytes port)
+  (define ls (make-parameter '()))
+  (let ([ip port])
+    (let loop ([b (read-byte ip)])
+      (unless (eof-object? b)
+        (ls (snoc (ls) b))
+        (loop (read-byte ip))))
+    (close-input-port ip))
+  (list->bytes (ls)))
+      
+
 (define (extract-filename path)
   (define-values (base name dir?) (split-path path))
   (->string name))

@@ -117,7 +117,8 @@
       [else
        (printf "~a~n" (hash-ref (content) 'hex))])
     
-    (close-input-port resp-port)))
+    (close-input-port resp-port)
+    ))
 
 (define (show-response res)
   (printf "[~a] ~a~n"
@@ -136,7 +137,10 @@
          (when (member (->sym (file-extension f)) '(occ inc module))
            (add-file f))))
      ;; Compile it
-     (compile (session-id) main))))
+     (compile (session-id) main)
+     ;; Make this thread die afterwards
+     (exit)
+     )))
 
 (define-syntax-rule (thunk body ...)
   (λ () body ...))
@@ -163,6 +167,31 @@
 
 (define-syntax-rule (with-timeout body ...)
   (with-timeout* (timeout) body ...))
+
+(define (retrieve-board-config board)
+  (let* ([url (make-server-url "board" board)]
+         [resp-port (get-pure-port url)]
+         [content (make-parameter (process-response resp-port))])
+    
+    (try/catch content hash?
+      (get-response 'ERROR-NO-REMOTE)
+      (debug 'BOARD-CONFIG "~a" (content))
+      )
+    
+    (content)))
+    
+;tvm-avr-atmega328p-16000000-arduino.hex
+(define (retrieve-board-firmware firm)
+    (let* ([url (make-server-url "firmware" firm)]
+         [resp-port (get-pure-port url)]
+         [content (make-parameter (process-response resp-port))])
+    
+    (try/catch content hash?
+      (get-response 'ERROR)
+      (debug 'FIRMWARE "~a" (content))
+      )
+    
+    (content)))
 
 (define plumb 
   (command-line
@@ -205,6 +234,14 @@
                 "Compile project <dir>, using <main> as the start."
                 (build dir main)]
    
+   [("--board-config") board
+                       "Fetch configuration data for a given board."
+                       (retrieve-board-config board)]
+   
+   [("--get-firmware") firmware
+                   "Retrieve firmware for board."
+                   (retrieve-board-firmware firmware)
+                   ]
    
    #:args filenames
    (for-each (λ (f)

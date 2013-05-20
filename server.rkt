@@ -131,11 +131,74 @@
    (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))
   )
 
+(define (retrieve-board-config req kind)
+  (define response (make-parameter true))
+  
+  ;; Build a path to the config
+  (set/catch response boolean?
+    (get-response 'ERROR)
+    (build-path (get-config 'CONFIG-BOARDS)
+                           (format "~a.conf" (extract-filename kind))))
+  
+  (debug 'BOARD-CONFIG "~a" (response))
+  
+  ;; Open the file
+  (set/catch response path?
+    (get-response 'ERROR-READ-CONFIG)
+    (open-input-file (response)))
+    
+  (debug 'BOARD-CONFIG "~a" (response))
+  
+  ;; Read it; it should be a hash table.
+  (set/catch response port?
+    (get-response 'ERROR-CONVERT-CONFIG)
+    (read (response)))
+  
+  (debug 'BOARD-CONFIG "~a" (response))
+  
+  ;; Encode it with an 'OK and send it back.
+  (encode-response 
+   (get-response 'OK #:extra (response)))
+  )
+
+(define (retrieve-firmware req firm)
+    (define response (make-parameter true))
+  
+  ;; Build a path to the firmware
+  (set/catch response boolean?
+    (get-response 'ERROR)
+    (build-path (get-config 'FIRMWARES) (extract-filename firm)))
+  
+  (debug 'FIRMWARE "~a" (response))
+  
+  ;; Open the file
+  (set/catch response path?
+    (get-response 'ERROR)
+    (open-input-file (response)))
+    
+  (debug 'FIRMWARE "~a" (response))
+  
+  ;; Read it all
+  (set/catch response port?
+    (get-response 'ERROR)
+    (make-hash `((firmware . ,(read-all (response))))))
+  
+  (debug 'FIRMWARE "~a" (response))
+  
+  ;; Encode it with an 'OK and send it back.
+  (encode-response 
+   (get-response 'OK #:extra (response)))
+  )
+    
+
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("start-session") start-session]
    [("add-file" (string-arg)) add-file]
    [("compile" (string-arg) (string-arg)) guarded-compile-session]
+   ;; Need guards and session ID checks on retrieve.
+   [("board" (string-arg)) retrieve-board-config]
+   [("firmware" (string-arg)) retrieve-firmware]
    ))
 
 (define (init)

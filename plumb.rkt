@@ -111,7 +111,7 @@
   (result))
 
 (define (compile id main)
-  (let* ([url (make-server-url "compile" id (extract-filename main))]
+  (let* ([url (make-server-url "compile" id board (extract-filename main))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
@@ -130,7 +130,7 @@
           (hash-ref res 'message)))
 
 
-(define (build dir main)
+(define (build board dir main)
   (parameterize ([current-directory dir])
     ;; Get a new session ID
     (start-session)
@@ -140,7 +140,7 @@
         (when (member (->sym (file-extension f)) '(occ inc module))
           (add-file f))))
     ;; Compile it
-    (compile (session-id) main)
+    (compile (session-id) board main)
     ))
 
 (define-syntax-rule (thunk body ...)
@@ -315,7 +315,8 @@
        (let* ([board (read)]
              [dir (read)]
              [main-file (read)]
-             [hex (build (->string dir) (->string main-file))]
+             ;; Need to pass the board type here -- fix the server
+             [hex (build (->string board) (->string dir) (->string main-file))]
              [full-config (retrieve-board-config board)]
              )
          (board.config full-config)

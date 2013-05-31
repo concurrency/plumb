@@ -23,7 +23,7 @@
   names)
 
 
-(define (guarded-compile-session req session-id main-file)
+(define (guarded-compile-session req session-id board main-file)
   (define resp
     (make-parameter (get-response 'OK)))
   
@@ -50,16 +50,19 @@
   ;; Compile. The result will be a response.
   (set/catch resp success-response?
     (get-response 'ERROR-COMPILE-UNKNOWN)
-    (compile-session req session-id main-file))
+    (compile-session req session-id board main-file))
   
   ;; Passing back to the webserver
   (encode-response (resp)))
 
-(define (compile-session req session-id main-file)
+(define (compile-session req session-id board main-file)
   (parameterize ([current-directory (session-dir session-id)])
     ;; Assume a successful build.
     (define response (make-parameter (get-response 'OK-BUILD)))
     (define names (generate-names main-file))
+    
+    ;; The server should load this, so we can compile with it.
+    (add-config (config) 'BOARD (server-retrieve-board-config board))
     
     (response (compile session-id (compile-cmd names)))
     
@@ -131,6 +134,33 @@
    (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))
   )
 
+(define (server-retrieve-board-config kind)
+  (define response (make-parameter true))
+  
+  ;; Build a path to the config
+  (set/catch response boolean?
+    (get-response 'ERROR)
+    (build-path (get-config 'CONFIG-BOARDS)
+                           (format "~a.conf" (extract-filename kind))))
+  
+  (debug 'BOARD-CONFIG "~a" (response))
+  
+  ;; Open the file
+  (set/catch response path?
+    (get-response 'ERROR-READ-CONFIG)
+    (open-input-file (response)))
+    
+  (debug 'BOARD-CONFIG "~a" (response))
+  
+  ;; Read it; it should be a hash table.
+  (set/catch response port?
+    (get-response 'ERROR-CONVERT-CONFIG)
+    (read (response)))
+  
+  (debug 'BOARD-CONFIG "~a" (response))
+  (response)
+  )
+
 (define (retrieve-board-config req kind)
   (define response (make-parameter true))
   
@@ -155,6 +185,7 @@
     (read (response)))
   
   (debug 'BOARD-CONFIG "~a" (response))
+  
   
   ;; Encode it with an 'OK and send it back.
   (encode-response 
@@ -195,7 +226,7 @@
   (dispatch-rules
    [("start-session") start-session]
    [("add-file" (string-arg)) add-file]
-   [("compile" (string-arg) (string-arg)) guarded-compile-session]
+   [("compile" (string-arg) (string-arg) (string-arg)) guarded-compile-session]
    ;; Need guards and session ID checks on retrieve.
    [("board" (string-arg)) retrieve-board-config]
    [("firmware" (string-arg)) retrieve-firmware]

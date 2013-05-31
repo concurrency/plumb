@@ -84,7 +84,7 @@
               --search ,(build-path (get-config 'INCLUDE) "arch" "common")
               --search ,(build-path (get-config 'INCLUDE) "arch" (hash-ref board 'mcpu))
               --search ,(build-path (get-config 'INCLUDE) "platforms" (hash-ref board 'platform))
-              -D ,(format "F.CPU=~a" (hash-ref board 'F.CPU))
+              -D ,(format "F.CPU=~a" (hash-ref board 'F_CPU))
               ;; --program needs to come last
               --program ,(hash-ref names 'occ))))
 

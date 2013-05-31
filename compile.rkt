@@ -77,13 +77,14 @@
 |#
 
 (define (compile-cmd names)
+  (define board (get-config 'BOARD))
   (system-call
    (get-config 'OCCBUILD)
    `(--search ,(get-config 'INCLUDE)
               --search ,(build-path (get-config 'INCLUDE) "arch" "common")
-              --search ,(build-path (get-config 'INCLUDE) "arch" "m328p")
-              --search ,(build-path (get-config 'INCLUDE) "platforms" "arduino")
-              -D F.CPU=16000
+              --search ,(build-path (get-config 'INCLUDE) "arch" (hash-ref board 'mcpu))
+              --search ,(build-path (get-config 'INCLUDE) "platforms" (hash-ref board 'platform))
+              -D ,(format "F.CPU=~a" (hash-ref board 'F.CPU))
               ;; --program needs to come last
               --program ,(hash-ref names 'occ))))
 

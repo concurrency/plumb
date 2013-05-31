@@ -83,6 +83,59 @@
   (debug 'CONFIG "Mac Config: ~a~n" (config))
   )
 
+(define (load-aws-config)
+  (config (empty-config))
+  (add-config (config) 'HOST-TYPE 'aws)
+  
+  (add-config (config) 'ARDUINO (build-path (getenv 'HOME) "local" "arduino"))
+  (add-config (config) 'KROC (build-path (getenv 'HOME) "git" "kroc"))
+  
+  (add-config (config) 'BINPATH (build-path (getenv 'HOME) "local" "bin" "macosx"))
+  ;; Which one?
+  (add-config (config) 'LIBPATH (build-path (get-config 'ARDUINO) "share" "tvm" "avr-vtlib"))
+  ;; These are the libraries for AVR work (Plumbing) 
+  (add-config (config) 'INCLUDE (build-path  (get-config 'KROC) "tvm" "arduino" "occam" "include"))
+  
+  (add-config (config) 'TEMPDIR (build-path "/tmp/jupiter"))
+  (add-config (config) 'SESSION-DB (build-path (get-config 'TEMPDIR) "jupiter.sqlite"))
+  
+  ;; Server Configs
+  (add-config (config) 'CONFIG   (build-path (current-directory) "server-config"))
+  (add-config (config) 'CONFIG-BOARDS (build-path (get-config 'CONFIG) "boards"))
+  (add-config (config) 'FIRMWARES (build-path (current-directory) "server-config" "firmwares"))
+  
+  (add-config (config) 'COMPILE  (bp "avr-occ21"))
+  (add-config (config) 'LINKER   (bp "avr-plinker.pl"))
+  (add-config (config) 'BINHEX   (bp "binary-to-ihex"))
+  
+  ;; Server Config
+  (add-config (config) 'PORT 9000)
+  (add-config (config) 'LISTEN-IP false)
+  
+  ;; Arduino Config (plumb.rkt only)
+  (add-config (config) 'SERIAL-PORT false)
+  (add-config (config) 'BOARD false)
+  
+  ;; This will have to change for Windows. Actually, for the GUI app in general.
+  (add-config (config) 'AVRDUDE.CONF (build-path (current-directory)
+                                                 "client-config" 
+                                                 (->string (get-config 'HOST-TYPE))
+                                                 "conf"
+                                                 "avrdude.conf"))
+  (add-config (config) 'AVRDUDE (build-path (current-directory)
+                                            "client-config"
+                                            (->string (get-config 'HOST-TYPE))
+                                            "bin"
+                                            "avrdude"))
+  
+  
+  (init-config 'aws)
+  (add-host 'aws (config))
+  
+  (debug 'CONFIG "AWS Config: ~a~n" (config))
+  )
+
+
 (define (load-bereacs-config)
   (config (empty-config))
   (add-config (config) 'BINPATH (build-path (getenv 'HOME) "local" "kroc" "bin"))

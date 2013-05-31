@@ -1,5 +1,6 @@
 #lang racket
 (require "util.rkt"
+         "debug.rkt"
          "path-handling.rkt"
          "response-handling.rkt"
          "session-management.rkt"
@@ -29,6 +30,9 @@
 
 (define (compile id cmd)
   (parameterize ([current-directory (session-dir id)])
+    (debug 'COMPILE "Current directory: ~a~n" (current-directory))
+    (debug 'COMPILE "****~n~a~n****~n" cmd)
+           
     (let-values ([(stdout stdin pid stderr control)
                   (apply values (process cmd))])
       (define result (make-parameter 'UNKNOWN))

@@ -90,10 +90,10 @@
   (config (empty-config))
   (add-config (config) 'HOST-TYPE 'aws)
   
-  (add-config (config) 'ARDUINO (build-path (getenv 'HOME) "local" "arduino"))
-  (add-config (config) 'KROC (build-path (getenv 'HOME) "git" "kroc"))
+  (add-config (config) 'ARDUINO (build-path (getenv "HOME") "local" "arduino"))
+  (add-config (config) 'KROC (build-path (getenv "HOME") "git" "kroc"))
   
-  (add-config (config) 'BINPATH (build-path (getenv 'HOME) "local" "bin" "macosx"))
+  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "bin" "macosx"))
   ;; Which one?
   (add-config (config) 'LIBPATH (build-path (get-config 'ARDUINO) "share" "tvm" "avr-vtlib"))
   ;; These are the libraries for AVR work (Plumbing) 
@@ -141,9 +141,9 @@
 
 (define (load-bereacs-config)
   (config (empty-config))
-  (add-config (config) 'BINPATH (build-path (getenv 'HOME) "local" "kroc" "bin"))
-  (add-config (config) 'LIBPATH (build-path (getenv 'HOME) "local" "occam" "lib"))
-  (add-config (config) 'INCLUDE (build-path (getenv 'HOME) "local" "occam" "include"))
+  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "kroc" "bin"))
+  (add-config (config) 'LIBPATH (build-path (getenv "HOME") "local" "occam" "lib"))
+  (add-config (config) 'INCLUDE (build-path (getenv "HOME") "local" "occam" "include"))
   (add-config (config) 'TEMPDIR (build-path "/tmp/jupiter"))
   (add-config (config) 'SESSION-DB (build-path (get-config 'TEMPDIR) "jupiter.sqlite"))
   

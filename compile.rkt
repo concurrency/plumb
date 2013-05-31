@@ -63,11 +63,24 @@
          -DEF (= F.CPU 16000000) -DEF OCCBUILD.TVM
          ,(hash-ref names 'occ))))
 
+;; NEED TO PARAMETERIZE
+#|
+ avr-occbuild --program fastblink.occ 
+--search /home/jupiter/git/kroc/tvm/arduino/occam/include/ 
+--search /home/jupiter/git/kroc/tvm/arduino/occam/include/arch/common/ 
+--search /home/jupiter/git/kroc/tvm/arduino/occam/include/arch/m328p/ -D F.CPU=16000 
+--search /home/jupiter/git/kroc/tvm/arduino/occam/include/platforms/arduino
+|#
+
 (define (compile-cmd names)
   (system-call
    (get-config 'OCCBUILD)
    `(--program --search ,(get-config 'INCLUDE)
+               --search ,(build-path (get-config 'INCLUDE) "arch" "common")
+               --search ,(build-path (get-config 'INCLUDE) "arch" "m328p")
+               --search ,(build-path (get-config 'INCLUDE) "platforms" "arduino")
                --search ,(get-config 'LIBPATH)
+               -D F.CPU=16000
                ,(hash-ref names 'occ))))
 
 (define (output-exists? id names ext)

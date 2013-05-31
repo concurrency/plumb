@@ -4,6 +4,7 @@
 
 ;; for make-unique-name
 (require file/sha1
+         net/url
          net/base64)
 
 (define (->sym v)
@@ -83,3 +84,18 @@
   (define-values (base name dir?) (split-path path))
   (->string name))
 
+
+(define (extract-filedir path)
+  (define-values (base name dir?) (split-path path))
+  (->string base))
+
+
+(define make-server-url 
+  (λ args
+    (string->url
+     (format "http://~a:~a~a"
+             (first args)
+             (second args)
+             (apply string-append
+                    (map (λ (p) (format "/~a" p)) 
+                         (rest (rest args))))))))

@@ -1,12 +1,46 @@
 #lang racket
  
-(require db)
+(require db
+         net/url)
 (require "path-handling.rkt"
          "response-handling.rkt"
          "util.rkt"
          "debug.rkt")
 
 (provide (all-defined-out))
+
+(define (start-session HOST PORT session-id)
+  
+  (define response 
+    (make-parameter (get-response 'ERROR)))
+  
+  (debug 'START-SESSION "DEFAULT ERROR: ~a" (response))
+  
+  (debug 'START-SESSION "SERVER URL: ~a" 
+         (url->string
+          (make-server-url (HOST) (PORT) "start-session")))
+  
+  (set/catch response error-response?
+    (get-response 'ERROR-NO-CONNECTION)
+    (get-pure-port (make-server-url (HOST) (PORT) "start-session")))
+  
+  (debug 'START-SESSION "PORT: ~a" (response))
+  
+  (set/catch response port?
+    (get-response 'ERROR-PROCESS-RESPONSE)
+    (process-response (response)))
+  
+  (debug 'START-SESSION "RESPONSE: ~a" (response))
+  
+  (set/catch response hash?
+    (get-response 'ERROR-BAD-RESPONSE)
+    (hash-ref (response) 'sessionid))
+  
+  (debug 'START-SESSION "SESSION ID: ~a" (response))
+  
+  (session-id (response))
+  
+  (response))
 
 (define (make-session-dir rs)
   (make-directory (session-dir rs)))

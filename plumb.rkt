@@ -5,6 +5,8 @@
          net/base64
          net/dns
          json
+         racket/gui
+         mrlib/path-dialog
          )
 
 (require "response-handling.rkt"
@@ -12,6 +14,8 @@
          "util.rkt"
          "debug.rkt"
          "upload.rkt"
+         "session-management.rkt"
+         "app-type.rkt"
          )
 
 (define VERSION "1.0.0")
@@ -19,46 +23,9 @@
 (define session-id   (make-parameter false))
 (define timeout (make-parameter 15))
 
-(define HOST (make-parameter "127.0.0.1"))
+(define HOST (make-parameter false))
 (define PORT (make-parameter 9000))
-
-(define make-server-url 
-  (λ args
-    (string->url
-     (format "http://~a:~a~a"
-             (HOST)
-             (PORT)
-             (apply string-append
-                    (map (λ (p) (format "/~a" p)) args))))))
-
-(define (start-session)
-  
-  (define response 
-    (make-parameter (get-response 'ERROR)))
-  
-  (debug 'START-SESSION "~a" (response))
-  
-  (set/catch response error-response?
-    (get-response 'ERROR-NO-CONNECTION)
-    (get-pure-port (make-server-url "start-session")))
-  
-  (debug 'START-SESSION "~a" (response))
-  
-  (set/catch response port?
-    (get-response 'ERROR-PROCESS-RESPONSE)
-    (process-response (response)))
-  
-  (debug 'START-SESSION "~a" (response))
-  
-  (set/catch response hash?
-    (get-response 'ERROR-BAD-RESPONSE)
-    (hash-ref (response) 'sessionid))
-  
-  (debug 'START-SESSION "~a" (response))
-  
-  (session-id (response))
-  
-  (response))
+(define arduino-ports (make-parameter (list)))
 
 (define (json-encode h)
   (let ([os (open-output-string)])
@@ -101,7 +68,7 @@
   (set/catch result bytes?
     (get-response 'ERROR-HTTP-GET)
     (get-pure-port
-     (make-server-url "add-file" (result))))
+     (make-server-url (HOST) (PORT) "add-file" (result))))
   
   ;; Process the result
   (set/catch result port?
@@ -110,15 +77,20 @@
   
   (result))
 
-(define (compile id board main)
-  (let* ([url (make-server-url "compile" id board (extract-filename main))]
+(define (compile-code id board main)
+  (debug 'COMPILE "Compiling on HOST ~a PORT ~a~n" (HOST) (PORT))
+  
+  (let* ([url (make-server-url (HOST) (PORT) "compile" id board (extract-filename main))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
     (close-input-port resp-port)
     
+    (debug 'COMPILE "CONTENT RESPONSE~n*****~n~a~n*****~n" (content))
+    
     (cond 
-      [(error-response? (content))
+      [(or (error-response? (content))
+           (eof-object? (content)))
        (content)]
       [else
        (hash-ref (content) 'hex)])
@@ -133,18 +105,18 @@
 (define (build board dir main)
   (parameterize ([current-directory dir])
     ;; Get a new session ID
-    (start-session)
+    (start-session HOST PORT session-id)
     ;; Add all the relevant files
     (for ([f (directory-list)])
       (when (file-exists? f)
         (when (member (->sym (file-extension f)) '(occ inc module))
           (add-file f))))
     ;; Compile it
-    (compile (session-id) board main)
+    (compile-code (session-id) board main)
     ))
 
-(define-syntax-rule (thunk body ...)
-  (λ () body ...))
+;(define-syntax-rule (thunk body ...)
+;  (λ () body ...))
 
 (define-syntax-rule (while test body ...)
   (let loop ()
@@ -170,7 +142,7 @@
   (with-timeout* (timeout) body ...))
 
 (define (retrieve-board-config board)
-  (let* ([url (make-server-url "board" board)]
+  (let* ([url (make-server-url (HOST) (PORT) "board" board)]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
@@ -189,7 +161,7 @@
   ;; First, get the board config
   (retrieve-board-config board)
   ;; Now, fetch the firmware
-  (let* ([url (make-server-url "firmware" (hash-ref (get-config 'BOARD) 'firmware))]
+  (let* ([url (make-server-url (HOST) (PORT) "firmware" (hash-ref (get-config 'BOARD) 'firmware))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
     
@@ -215,8 +187,13 @@
    [("--verbose") "Set maximum verbosity."
                   (verbose-mode true)]
    
+   [("--server") host
+                 "Set the server address."
+                 (HOST host)
+                 ]
+   
    [("--start-session") "Start a session."
-                        (start-session)
+                        (start-session HOST PORT session-id)
                         (printf "~a~n" (session-id))
                         (exit)]
    
@@ -230,7 +207,7 @@
    
    [("-c" "--compile") main
                        "Compile <main-file>."
-                       (compile (session-id) main)]
+                       (compile-code (session-id) main)]
    
    [("-t" "--timeout") sec
                        "Set the timeout in seconds."
@@ -252,6 +229,8 @@
    (for-each (λ (f)
                (show-response (add-file f)))
              filenames)
+   
+   ;;(plumb-repl)
    ))
 
 
@@ -262,7 +241,7 @@
                                  '(f b r)
                                  '())
                              '(h a d p)) ",")))
-  
+
 ;; I need a non-stateless thing.
 (define (plumb-repl)
   
@@ -271,6 +250,12 @@
   (define code.hex (make-parameter false))
   (define firmware.hex (make-parameter false))
   (load-config (system-type))
+  
+  ;; If no host is specified, use localhost
+  ;; Otherwise, pull from the command line
+  (if (equal? (HOST) false)
+      (HOST "127.0.0.1")
+      (add-config (config) 'SERVER-HOST (HOST)))
   
   (HOST (dns-get-address 
          (dns-find-nameserver)
@@ -282,9 +267,9 @@
   (unless (directory-exists? (get-config 'TEMPDIR))
     (make-directory (get-config 'TEMPDIR)))
   
-  (define session-id (make-parameter (start-session)))
+  (define session-id (make-parameter (start-session HOST PORT session-id)))
   
-    ;; Check the file exists
+  ;; Check the file exists
   (try/catch session-id success-response?
     (get-response 'ERROR-NO-CONNECTION)
     (begin
@@ -293,70 +278,206 @@
       (options serial.port)
       (printf "> ")
       
-  
-  (let main-loop ([cmd (read)])
-    ;; Input handler
-    (case (->sym cmd)
-      [(h help)
-       (printf "HELP~n")]
       
-      [(d debug)
-       (let ([flag (read)])
-         (printf "Enabling debug flag: ~a~n" flag)
-         (enable-debug! (->sym flag)))]
-      
-      [(a add-file) 
-       (printf "session-id: ~a~n" (session-id))
-       (let ([filename (read)])
-         (show-response (add-file (->string filename))))]
-      
-      [(b build) 
-       (let* ([board (read)]
-             [dir (read)]
-             [main-file (read)]
-             ;; Need to pass the board type here -- fix the server
-             [hex (build (->string board) (->string dir) (->string main-file))]
-             [full-config (retrieve-board-config board)]
-             )
-         (board.config full-config)
-         (debug 'USER-CODE "Board Config: ~a~n" (board.config))
-         (code.hex hex)
-         (debug 'USER-CODE "~a" (code.hex))
-         (avrdude-code (serial.port) (code.hex))
-         )]
-      
-      [(f firmware)
-       (let* ([board (read)]
-              [full-config (retrieve-board-firmware (->string board))])
-         (board.config full-config)
-         (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
-         (firmware.hex (hash-ref (board.config) 'hex))
-         (avrdude-firmware (serial.port)))]
-      
-      [(p port)
-       (newline)
-       (for ([a (list-arduinos)]
-             [n (length (list-arduinos))])
-         (printf "[~a] ~a~n" n (build-port a)))
-       (newline)
-       (printf "Select serial port~n[port] ")
-       (let ([port (read)])
-         (serial.port 
-          (build-port
-           (list-ref 
-            (list-arduinos)
-            (string->number (->string port))))))]
-      
-      [(q quit) (printf "Exiting...~n")
-                (sleep 1)
-                (exit)])
-    
-    (options serial.port)
-    (printf "> ")
-    
-    (main-loop (read))
-    
-    )))
+      (let main-loop ([cmd (read)])
+        ;; Input handler
+        (case (->sym cmd)
+          [(h help)
+           (printf "HELP~n")]
+          
+          [(d debug)
+           (let ([flag (read)])
+             (printf "Enabling debug flag: ~a~n" flag)
+             (enable-debug! (->sym flag)))]
+          
+          [(a add-file) 
+           (printf "session-id: ~a~n" (session-id))
+           (let ([filename (read)])
+             (show-response (add-file (->string filename))))]
+          
+          [(b build) 
+           (let* ([board (read)]
+                  [dir (read)]
+                  [main-file (read)]
+                  ;; Need to pass the board type here -- fix the server
+                  [hex (build (->string board) (->string dir) (->string main-file))]
+                  [full-config (retrieve-board-config board)]
+                  )
+             (board.config full-config)
+             (debug 'USER-CODE "Board Config: ~a~n" (board.config))
+             (code.hex hex)
+             (debug 'USER-CODE "~a" (code.hex))
+             (avrdude-code (serial.port) (code.hex))
+             )]
+          
+          [(f firmware)
+           (let* ([board (read)]
+                  [full-config (retrieve-board-firmware (->string board))])
+             (board.config full-config)
+             (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
+             (firmware.hex (hash-ref (board.config) 'hex))
+             (avrdude-firmware (serial.port)))]
+          
+          [(p port)
+           (newline)
+           (for ([a (list-arduinos)]
+                 [n (length (list-arduinos))])
+             (printf "[~a] ~a~n" n (build-port a)))
+           (newline)
+           (printf "Select serial port~n[port] ")
+           (let ([port (read)])
+             (serial.port 
+              (build-port
+               (list-ref 
+                (list-arduinos)
+                (string->number (->string port))))))]
+          
+          [(q quit) (printf "Exiting...~n")
+                    (sleep 1)
+                    (exit)])
+        
+        (options serial.port)
+        (printf "> ")
+        
+        (main-loop (read))
+        
+        )))
   )
 
-(plumb-repl)
+(define main-file (make-parameter false))
+(define (board-choice->board-type choice)
+  (case choice
+    [("Arduino Duemilanove") "arduino"]
+    [else "arduino"]))
+
+(define (do-compilation win)
+  
+  (define board.config (make-parameter false))
+  (define serial.port (make-parameter 
+                       (build-port
+                        (list-ref 
+                         (arduino-ports)
+                         (send 
+                          (hash-ref (win) 'serial-port)
+                          get-selection)))))
+                       
+  (define code.hex (make-parameter false))
+  (define firmware.hex (make-parameter false))
+  (load-config (system-type))
+  
+  (debug 'COMPILE "Serial Port: ~a" (serial.port))
+  
+  ;; If no host is specified, use localhost
+  ;; Otherwise, pull from the command line
+  (HOST (send (hash-ref (win) 'server) get-value))
+  (add-config (config) 'SERVER-HOST (HOST))
+  
+  (HOST (dns-get-address 
+         (dns-find-nameserver)
+         (get-config 'SERVER-HOST)))
+  
+  (PORT (get-config 'SERVER-PORT))
+  
+  ;; Needed for firmware
+  (unless (directory-exists? (get-config 'TEMPDIR))
+    (make-directory (get-config 'TEMPDIR)))
+  
+  (start-session HOST PORT session-id)
+  
+  (debug 'COMPILE "Session ID: ~a~n" (session-id))
+  (debug 'COMPILE "Board: ~a~nDir: ~a~nName: ~a~n"
+         (board-choice->board-type
+          (hash-ref (win) 'board))
+         (extract-filedir (main-file))
+         (extract-filename (main-file)))
+  
+  (let* ([board (board-choice->board-type
+                 (hash-ref (win) 'board))]
+         ;; Need to pass the board type here -- fix the server
+         [hex (build board
+                     (extract-filedir (main-file))
+                     (extract-filename (main-file))
+                     )]
+         [full-config (retrieve-board-config board)]
+         )
+    (board.config full-config)
+    (debug 'USER-CODE "Board Config: ~a~n" (board.config))
+    (code.hex hex)
+    (debug 'USER-CODE "~a" (code.hex))
+    (avrdude-code (serial.port) (code.hex))
+    ))
+
+
+
+(define (main-frame)
+  (define win (make-parameter (make-hash)))
+  
+  (define f (new frame%
+                 [label "Plumb GUI"]
+                 [width 400]
+                 [height 200]
+                 ))
+  (define server (new text-field% 
+                      [parent f]
+                      [label "Server"]
+                      [init-value "ec2-54-226-131-120.compute-1.amazonaws.com"]
+                      [stretchable-width true]
+                      ))
+  
+  (define serial-port (new choice%
+                           [parent f]
+                           [label "Arduino Port"]
+                           [choices 
+                            (let ()
+                              (arduino-ports (map ->string (list-arduinos)))
+                              (arduino-ports))]))
+  (define board (new choice% 
+                     [parent f]
+                     [label "Board Type"]
+                     [choices (list "Arduino Duemilanove")]))
+  
+  (define hortz (new horizontal-panel%
+                     [parent f]))
+  
+  (define choose-file (new button%
+                           [parent hortz]
+                           [label "Choose Code"]
+                           [stretchable-width true]
+                           [callback (λ (b e)
+                                       (let ([d (new path-dialog%
+                                                     [label "occam code chooser"]
+                                                     [message "Choose your main .occ file."]
+                                                     [parent f]
+                                                     [existing? true]
+                                                     [filters (list (list "occam files" "*.occ"))]
+                                                     [dir? false])])
+                                         (main-file (send d run))))]
+                           ))
+  
+  (define compile (new button%
+                       [parent hortz]
+                       [label "Compile"]
+                       [stretchable-width true]
+                       [callback (λ (b e)
+                                   (do-compilation win))]
+                       ))
+  
+  (win (make-hash `((frame . ,f)
+                    (server . ,server)
+                    (serial-port . ,serial-port)
+                    (board . ,board)
+                    (choose-file . ,choose-file)
+                    (compile . ,compile)
+                    )))
+  win)
+
+
+
+(when (not GUI)
+  (plumb-repl))
+
+
+(when GUI
+  (enable-debug! 'ALL)
+  (define window (main-frame))
+  (send (hash-ref (window) 'frame) show true))

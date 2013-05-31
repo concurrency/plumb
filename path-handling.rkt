@@ -65,7 +65,7 @@
   (add-config (config) 'LISTEN-IP false)
   
   ;; Arduino Config (plumb.rkt only)
-  (add-config (config) 'SERVER-HOST "ec2-54-234-140-198.compute-1.amazonaws.com")
+  ;;(add-config (config) 'SERVER-HOST "ec2-54-234-140-198.compute-1.amazonaws.com")
   (add-config (config) 'SERVER-PORT 9000)
   
   (add-config (config) 'SERIAL-PORT false)

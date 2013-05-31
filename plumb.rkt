@@ -110,7 +110,7 @@
   
   (result))
 
-(define (compile id main)
+(define (compile id board main)
   (let* ([url (make-server-url "compile" id board (extract-filename main))]
          [resp-port (get-pure-port url)]
          [content (make-parameter (process-response resp-port))])
@@ -236,9 +236,9 @@
                        "Set the timeout in seconds."
                        (timeout (string->number sec))]
    
-   [("--build") dir main
-                "Compile project <dir>, using <main> as the start."
-                (build dir main)]
+   [("--build") dir board main
+                "Compile project <dir>, for <board>, using <main> as the start."
+                (build dir board main)]
    
    [("--board-config") board
                        "Fetch configuration data for a given board."
@@ -259,13 +259,12 @@
   (printf "Options ~a~n"
           (list-intersperse (append
                              (if (serial.port)
-                                 '(f b)
+                                 '(f b r)
                                  '())
                              '(h a d p)) ",")))
   
 ;; I need a non-stateless thing.
 (define (plumb-repl)
-  
   
   (define board.config (make-parameter false))
   (define serial.port (make-parameter false))
@@ -348,15 +347,15 @@
             (list-arduinos)
             (string->number (->string port))))))]
       
-      
-      
       [(q quit) (printf "Exiting...~n")
                 (sleep 1)
                 (exit)])
     
     (options serial.port)
     (printf "> ")
+    
     (main-loop (read))
+    
     )))
   )
 

@@ -96,7 +96,7 @@
   (add-config (config) 'ARDUINO (build-path (getenv "HOME") "local" "arduino"))
   (add-config (config) 'KROC (build-path (getenv "HOME") "git" "kroc"))
   
-  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "kroc" "bin"))
+  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "arduino" "bin"))
   ;; Which one?
   (add-config (config) 'LIBPATH (build-path (get-config 'ARDUINO) "share" "tvm" "avr-vtlib"))
   ;; These are the libraries for AVR work (Plumbing) 

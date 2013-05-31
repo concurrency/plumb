@@ -3,7 +3,9 @@
 (require racket/cmdline
          net/url
          net/base64
-         json)
+         net/dns
+         json
+         )
 
 (require "response-handling.rkt"
          "path-handling.rkt"
@@ -17,15 +19,15 @@
 (define session-id   (make-parameter false))
 (define timeout (make-parameter 15))
 
-(define HOST "127.0.0.1")
-(define PORT 9000)
+(define HOST (make-parameter "127.0.0.1"))
+(define PORT (make-parameter 9000))
 
 (define make-server-url 
   (λ args
     (string->url
      (format "http://~a:~a~a"
-             HOST
-             PORT
+             (HOST)
+             (PORT)
              (apply string-append
                     (map (λ (p) (format "/~a" p)) args))))))
 
@@ -264,17 +266,30 @@
 ;; I need a non-stateless thing.
 (define (plumb-repl)
   
-  (define session-id (make-parameter (start-session)))
+  
   (define board.config (make-parameter false))
   (define serial.port (make-parameter false))
   (define code.hex (make-parameter false))
   (define firmware.hex (make-parameter false))
   (load-config (system-type))
   
-  (printf "plumb repl session: ~a~n" (session-id))
-  (options serial.port)
-  (printf "> ")
+  (HOST (dns-get-address 
+         (dns-find-nameserver)
+         (get-config 'SERVER-HOST)))
   
+  (PORT (get-config 'SERVER-PORT))
+  
+  (define session-id (make-parameter (start-session)))
+  
+    ;; Check the file exists
+  (try/catch session-id success-response?
+    (get-response 'ERROR-NO-CONNECTION)
+    (begin
+      
+      ;(printf "plumb repl session: ~a~n" (session-id))
+      (options serial.port)
+      (printf "> ")
+      
   
   (let main-loop ([cmd (read)])
     ;; Input handler
@@ -337,6 +352,7 @@
     (options serial.port)
     (printf "> ")
     (main-loop (read))
-    ))
+    )))
+  )
 
 (plumb-repl)

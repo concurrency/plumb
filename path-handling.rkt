@@ -32,11 +32,14 @@
   (debug 'CONFIG "Loading config: ~a~n" name)
   (case (->sym name)
     [(mac osx macosx) (load-mac-config)
-               (set-config 'mac)
-               ]
+               (set-config 'mac)]
+    
     [(bereacs) (load-bereacs-config)
-               (set-config 'bereacs)
-               ]))
+               (set-config 'bereacs)]
+    
+    [(aws amazon) (load-aws-config)
+                  (set-config 'aws)]
+    ))
 
 (define (load-mac-config)
   (config (empty-config))

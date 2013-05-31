@@ -79,7 +79,6 @@
                --search ,(build-path (get-config 'INCLUDE) "arch" "common")
                --search ,(build-path (get-config 'INCLUDE) "arch" "m328p")
                --search ,(build-path (get-config 'INCLUDE) "platforms" "arduino")
-               --search ,(get-config 'LIBPATH)
                -D F.CPU=16000
                ,(hash-ref names 'occ))))
 

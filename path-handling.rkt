@@ -111,6 +111,7 @@
   (add-config (config) 'FIRMWARES (build-path (current-directory) "server-config" "firmwares"))
   
   (add-config (config) 'COMPILE  (bp "avr-occ21"))
+  (add-config (config) 'OCCBUILD (bp "avr-occbuild"))
   (add-config (config) 'LINKER   (bp "avr-plinker.pl"))
   (add-config (config) 'BINHEX   (bp "binary-to-ihex"))
   

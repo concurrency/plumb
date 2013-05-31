@@ -54,7 +54,7 @@
       
       (result))))
     
-(define (compile-cmd names)    
+(define (compile-cmd-x names)    
   (system-call
   (get-config 'COMPILE)
   `(-t2 -V -etc -w -y -znd -znec 
@@ -62,6 +62,13 @@
          -zrpe -zcxdiv -zcxrem -zep -b -tle 
          -DEF (= F.CPU 16000000) -DEF OCCBUILD.TVM
          ,(hash-ref names 'occ))))
+
+(define (compile-cmd names)
+  (system-call
+   (get-config 'OCCBUILD)
+   `(--program --search ,(get-config 'INCLUDE)
+               --search ,(get-config 'LIBPATH)
+               ,(hash-ref names 'occ))))
 
 (define (output-exists? id names ext)
   (parameterize ([current-directory (session-dir id)])

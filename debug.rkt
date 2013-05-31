@@ -14,7 +14,7 @@
 
 (define-syntax-rule (debug key msg args ...)
   (when (or (member key (FLAGS))
-            (equal? key 'ALL))
+            (member 'ALL (FLAGS)))
     (printf "[~a] ~a~n"
             key
             (format msg args ...))))

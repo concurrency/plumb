@@ -64,11 +64,18 @@
     
     ;; Dump the firmware
     (when (file-exists? fhex)
+      (debug 'UPLOAD "Removing old firmware.")
       (delete-file fhex))
+    
     (with-output-to-file fhex
-      (thunk (printf "~a~n" (hash-ref board 'hex))))
+      (thunk 
+       (begin
+         (debug 'UPLOAD "Writing firmware to disk.")
+         (printf "~a~n" (hash-ref board 'hex)))))
     
     (debug 'UPLOAD "Firmware written.")
+    
+    (debug 'UPLOAD "Attempting AVRDUDE.")
     
     (let ()
       (define result 
@@ -76,7 +83,9 @@
          (exe-in-tempdir
           (avrdude-cmd fhex board serial-port))))
       (cond
-        [(zero? (result)) (get-response 'OK)]
+        [(zero? (result)) 
+         (debug 'UPLOAD "Upload successful.")
+         (get-response 'OK)]
         [else (error)]))
     ))
 

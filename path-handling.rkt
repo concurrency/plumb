@@ -31,8 +31,8 @@
 (define (load-config name)
   (debug 'CONFIG "Loading config: ~a~n" name)
   (case (->sym name)
-    [(mac osx macosx) (load-mac-config)
-               (set-config 'mac)]
+    [(mac osx macosx) (load-macosx-config)
+               (set-config 'macosx)]
     
     [(bereacs) (load-bereacs-config)
                (set-config 'bereacs)]
@@ -41,14 +41,14 @@
                   (set-config 'aws)]
     ))
 
-(define (load-mac-config)
+(define (load-macosx-config)
   (config (empty-config))
-  (add-config (config) 'HOST-TYPE 'mac)
+  (add-config (config) 'HOST-TYPE 'macosx)
   
   (add-config (config) 'BINPATH (build-path (current-directory) "bin" "macosx"))
   (add-config (config) 'LIBPATH (build-path (current-directory) "occam" "lib"))
   (add-config (config) 'INCLUDE (build-path (current-directory) "occam" "include"))
-  (add-config (config) 'TEMPDIR (build-path "/tmp/jupiter"))
+  (add-config (config) 'TEMPDIR (build-path "/tmp" "jupiter"))
   (add-config (config) 'SESSION-DB (build-path (get-config 'TEMPDIR) "jupiter.sqlite"))
   
   ;; Server Configs
@@ -83,8 +83,8 @@
                                             "avrdude"))
   
   
-  (init-config 'mac)
-  (add-host 'mac (config))
+  (init-config 'macosx)
+  (add-host 'macosx (config))
   
   (debug 'CONFIG "Mac Config: ~a~n" (config))
   )
@@ -96,13 +96,13 @@
   (add-config (config) 'ARDUINO (build-path (getenv "HOME") "local" "arduino"))
   (add-config (config) 'KROC (build-path (getenv "HOME") "git" "kroc"))
   
-  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "bin" "macosx"))
+  (add-config (config) 'BINPATH (build-path (getenv "HOME") "local" "kroc" "bin"))
   ;; Which one?
   (add-config (config) 'LIBPATH (build-path (get-config 'ARDUINO) "share" "tvm" "avr-vtlib"))
   ;; These are the libraries for AVR work (Plumbing) 
   (add-config (config) 'INCLUDE (build-path  (get-config 'KROC) "tvm" "arduino" "occam" "include"))
   
-  (add-config (config) 'TEMPDIR (build-path "/tmp/jupiter"))
+  (add-config (config) 'TEMPDIR (build-path "/tmp" "jupiter"))
   (add-config (config) 'SESSION-DB (build-path (get-config 'TEMPDIR) "jupiter.sqlite"))
   
   ;; Server Configs

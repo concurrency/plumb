@@ -279,6 +279,10 @@
   
   (PORT (get-config 'SERVER-PORT))
   
+  ;; Needed for firmware
+  (unless (directory-exists? (get-config 'TEMPDIR))
+    (make-directory (get-config 'TEMPDIR)))
+  
   (define session-id (make-parameter (start-session)))
   
     ;; Check the file exists

@@ -79,12 +79,13 @@
 (define (compile-cmd names)
   (system-call
    (get-config 'OCCBUILD)
-   `(--program --search ,(get-config 'INCLUDE)
-               --search ,(build-path (get-config 'INCLUDE) "arch" "common")
-               --search ,(build-path (get-config 'INCLUDE) "arch" "m328p")
-               --search ,(build-path (get-config 'INCLUDE) "platforms" "arduino")
-               -D F.CPU=16000
-               ,(hash-ref names 'occ))))
+   `(--search ,(get-config 'INCLUDE)
+              --search ,(build-path (get-config 'INCLUDE) "arch" "common")
+              --search ,(build-path (get-config 'INCLUDE) "arch" "m328p")
+              --search ,(build-path (get-config 'INCLUDE) "platforms" "arduino")
+              -D F.CPU=16000
+              ;; --program needs to come last
+              --program ,(hash-ref names 'occ))))
 
 (define (output-exists? id names ext)
   (parameterize ([current-directory (session-dir id)])

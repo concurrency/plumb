@@ -19,16 +19,16 @@
 
 (define process%
   (class object%
-    (field 
-     (status 'OK)
-     (value 'INITIAL))
+    (init-field [context "NO CONTEXT"])
+    (field [status 'OK]
+           [value 'INITIAL])
     
     (define/public (set x)
       (when (not (equal? NO-CHANGE x))
         (set! value x)))
     
     (define/public (get) value)
-      
+    
     
     (define/public (status-ok?)
       (equal? status 'OK))
@@ -42,6 +42,11 @@
     (define/public (to-string)
       (format "[~a] ~a" status value))
     
+    (define/public (get-context)
+      context)
+    (define/public (get-error)
+      status)
+    
     (super-new)))
 
 (struct step (precondition? on-error next-steps))
@@ -52,6 +57,7 @@
 (define-syntax handle-seq-case
   (syntax-rules ()
     [(_ obj pre? on-err next-steps)
+     ;; Watch for defaults
      (cond
        ;; Only run code if we're OK, and 
        ;; the pre-condition is met
@@ -62,7 +68,11 @@
         ]
        ;; Only apply the error if we haven't done so before
        [(send obj status-ok?)
-        (send obj on-error (on-err))])
+        (send obj on-error (on-err))
+        (raise-user-error 
+         (send obj get-context)
+         (send obj to-string))
+        ])
      ]))
 
 (define-syntax seq

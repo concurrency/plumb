@@ -16,6 +16,7 @@
          "upload.rkt"
          "session-management.rkt"
          "app-type.rkt"
+         "sequential-ops.rkt"
          )
 
 (define VERSION "1.0.0")
@@ -105,19 +106,27 @@
 
 (define (build board dir main)
   (parameterize ([current-directory dir])
-    ;; Get a new session ID
-    (session-id (start-session HOST PORT))
-    ;; Add all the relevant files
-    (for ([f (directory-list)])
-      (when (file-exists? f)
-        (when (member (->sym (file-extension f)) '(occ inc module))
-          (add-file f))))
-    ;; Compile it
-    (compile-code (session-id) board main)
+    (define p (new process% [context 'BUILD-BOARD]))
+    
+    (seq p
+      [(initial? 'ERROR-START-SESSION)
+       (start-session HOST PORT)]
+      [(string? 'ERROR-STORE-SESSION-ID)
+       (session-id (send p get))
+       NO-CHANGE]
+      [(pass 'ERROR-LISTING-FILES)
+       (filter (λ (f)
+                 (member (->sym (file-extension f))
+                         '(occ inc module)))
+               (filter file-exists? (directory-list)))]
+      [(list? 'ERROR-ADDING-FILES)
+       (for ([f (send p get)])
+         (add-file f))
+       NO-CHANGE]
+      [(list? 'ERROR-COMPILING-CODE)
+       (compile-code (session-id) board main)])
     ))
-
-;(define-syntax-rule (thunk body ...)
-;  (λ () body ...))
+   
 
 (define-syntax-rule (while test body ...)
   (let loop ()
@@ -125,34 +134,26 @@
       body ...
       (loop))))
 
-(define-syntax-rule (with-timeout* time body ...)
-  (let ([run-id (thread (thunk body ...))]
-        [start-time (current-seconds)]
-        [current-time (make-parameter (current-seconds))])
-    
-    ;; Run until we timeout
-    (while (> time (- (current-time) start-time))
-      (sleep 1)
-      (current-time (current-seconds)))
-    
-    (when (thread-running? run-id)
-      (kill-thread run-id)
-      (printf "Timed out in ~a seconds.~n" time))))
-
 (define (retrieve-board-config board)
-  (let* ([url (make-server-url (HOST) (PORT) "board" board)]
-         [resp-port (get-pure-port url)]
-         [content (make-parameter (process-response resp-port))])
+  (define p (new process% [context 'RETRIEVE-BOARD-CONFIG]))
+ 
+  (seq p
+    [(initial? 'ERROR-GENERATING-URL)
+     (make-server-url (HOST) (PORT) "board" board)]
     
-    (try/catch content hash?
-      (get-response 'ERROR-NO-REMOTE)
-      (debug 'BOARD-CONFIG "~a" (filter-hash (content) 'hex))
-      )
+    [(url? 'ERROR-CREATING-PORT)
+     (get-pure-port (send p get))]
     
-    ;; Store the config.
-    (add-config (config) 'BOARD (content))
+    [(port? 'ERROR-PARSING-RESPONSE)
+     (process-response (send p get))]
     
-    (content)))
+    [(hash? 'ERROR-STORING-BOARD-CONFIG)
+     (debug 'BOARD-CONFIG "~a" (filter-hash (send p get) 'hex))
+     (add-config (config) 'BOARD (send p get))
+     NO-CHANGE])
+  
+  (send p get)
+  )
 
 ;tvm-avr-atmega328p-16000000-arduino.hex
 (define (retrieve-board-firmware board)
@@ -419,7 +420,7 @@
     
     (board.config full-config)
     (debug 'USER-CODE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
-    (code.hex hex)
+    (code.hex (hash-ref (board.config) 'hex))
     (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
     (avrdude-code (serial.port) (code.hex))
     ))

@@ -13,7 +13,7 @@
 
 (define (start-session HOST PORT)
   ;; Create a new process object
-  (define p (new process%))
+  (define p (new process% [context 'SESSION-START]))
   
   ;; Define a sequence of operations
   (seq p
@@ -46,7 +46,7 @@
     
     ;; The session ID should be a symbol. We're just displaying
     ;; it as a debug here, so this step should yield no changes.
-    [(symbol? 'ERROR)
+    [(string? 'ERROR-SESSION-ID-NOT-A-STRING)
      (debug 'START-SESSION "SESSION ID: ~a" (send p get))
      NO-CHANGE])
   

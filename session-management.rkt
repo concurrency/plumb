@@ -5,11 +5,42 @@
 (require "path-handling.rkt"
          "response-handling.rkt"
          "util.rkt"
-         "debug.rkt")
+         "debug.rkt"
+         "sequential-ops.rkt"
+         )
 
 (provide (all-defined-out))
 
-(define (start-session HOST PORT session-id)
+(define (start-session HOST PORT)
+  (define p (new process%))
+  (seq p
+    [(initial? 'ERROR)
+     (debug 'START-SESSION "DEFAULT ERROR: ~a" (send p to-string))
+     (debug 'START-SESSION "SERVER URL: ~a" 
+            (url->string
+             (make-server-url (HOST) (PORT) "start-session")))
+     NO-CHANGE]
+    
+    [(initial? 'ERROR-NO-CONNECTION)
+     (get-pure-port (make-server-url (HOST) (PORT) "start-session"))]
+    
+    [(port? 'ERROR-PROCESS-RESPONSE)
+     (debug 'START-SESSION "PORT: ~a" (send p to-string))
+     (process-response (send p get))]
+    
+    [(hash? 'ERROR-BAD-RESPONSE)
+     (debug 'START-SESSION "RESPONSE: ~a" (send p to-string))
+     (hash-ref (send p get) 'sessionid)]
+    
+    [(symbol? 'ERROR)
+     (debug 'START-SESSION "SESSION ID: ~a" (send p get))
+     NO-CHANGE])
+  
+  ;; Send back the result
+  (send p get)
+  )
+ 
+(define (old-start-session HOST PORT session-id)
   
   (define response 
     (make-parameter (get-response 'ERROR)))

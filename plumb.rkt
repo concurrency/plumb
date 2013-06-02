@@ -87,7 +87,7 @@
     
     (close-input-port resp-port)
     
-    (debug 'COMPILE "CONTENT RESPONSE~n*****~n~a~n*****~n" (content))
+    (debug 'COMPILE "CONTENT RESPONSE~n*****~n~a~n*****~n" (filter-hash (content) 'hex))
     
     (cond 
       [(or (error-response? (content))
@@ -106,7 +106,7 @@
 (define (build board dir main)
   (parameterize ([current-directory dir])
     ;; Get a new session ID
-    (start-session HOST PORT session-id)
+    (session-id (start-session HOST PORT))
     ;; Add all the relevant files
     (for ([f (directory-list)])
       (when (file-exists? f)
@@ -168,7 +168,7 @@
     
     (try/catch content hash?
       (get-response 'ERROR)
-      (debug 'FIRMWARE "~a" (string-length (content)))
+      (debug 'FIRMWARE "~a" (string-length (hash-ref (content) 'hex)))
       )
     (content)))
 
@@ -194,7 +194,7 @@
                  ]
    
    [("--start-session") "Start a session."
-                        (start-session HOST PORT session-id)
+                        (session-id (start-session HOST PORT))
                         (printf "~a~n" (session-id))
                         (exit)]
    
@@ -268,7 +268,7 @@
   (unless (directory-exists? (get-config 'TEMPDIR))
     (make-directory (get-config 'TEMPDIR)))
   
-  (define session-id (make-parameter (start-session HOST PORT session-id)))
+  (define session-id (make-parameter (start-session HOST PORT)))
   
   ;; Check the file exists
   (try/catch session-id success-response?
@@ -315,7 +315,7 @@
            (let* ([board (read)]
                   [full-config (retrieve-board-firmware (->string board))])
              (board.config full-config)
-             (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
+             (debug 'FIRMWARE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
              (firmware.hex (hash-ref (board.config) 'hex))
              (avrdude-firmware (serial.port)))]
           
@@ -390,7 +390,7 @@
                    (hash-ref (win) 'board))]
            [full-config (retrieve-board-firmware (->string board))])
       (board.config full-config)
-      (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
+      (debug 'FIRMWARE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
       (firmware.hex (hash-ref (board.config) 'hex))
       (avrdude-firmware (serial.port))
       ))
@@ -399,7 +399,7 @@
   (unless (directory-exists? (get-config 'TEMPDIR))
     (make-directory (get-config 'TEMPDIR)))
   
-  (start-session HOST PORT session-id)
+  (session-id (start-session HOST PORT))
   
   (debug 'COMPILE "Session ID: ~a~n" (session-id))
   (debug 'COMPILE "Board: ~a~nDir: ~a~nName: ~a~n"

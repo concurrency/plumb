@@ -149,7 +149,7 @@
     
     (try/catch content hash?
       (get-response 'ERROR-NO-REMOTE)
-      (debug 'BOARD-CONFIG "~a" (content))
+      (debug 'BOARD-CONFIG "~a" (filter-hash (content) 'hex))
       )
     
     ;; Store the config.
@@ -351,6 +351,12 @@
     [("Arduino Duemilanove") "arduino"]
     [else "arduino"]))
 
+
+(define (filter-hash hash key)
+  (let ([c (hash-copy hash)])
+    (hash-remove! c key)
+    c))
+
 (define (do-compilation win)
   
   (define board.config (make-parameter false))
@@ -417,9 +423,9 @@
     (send (hash-ref ((hash-ref (win) 'compiler-response-window)) 'f) show true)
     
     (board.config full-config)
-    (debug 'USER-CODE "Board Config: ~a~n" (board.config))
+    (debug 'USER-CODE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
     (code.hex hex)
-    (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
+    (debug 'USER-CODE "LENGTH: ~a" (code.hex))
     (avrdude-code (serial.port) (code.hex))
     ))
 

@@ -22,7 +22,7 @@
                   (if (and (hash? a)
                            (hash-ref a 'hex (λ () false)))
                       (let ([c (hash-copy a)])
-                        (hash-remove! c 'hex)
+                        (hash-set! c 'hex (string-length (hash-ref c 'hex)))
                         c)
                       a))
                 (list args ...))])

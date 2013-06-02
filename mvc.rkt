@@ -6,16 +6,12 @@
 
 (define model%
   (class object%
-    (field [views empty]
-           [session false])
+    (field [views empty])
     
-    (define (init-session host port)
-      (set! session (new session%
-                         [host host]
-                         [port port]))
-      (update))
-                         
-    (define (update)
+    (define/public (add-view v)
+      (set! views (cons v views)))
+    
+    (define/public (update)
       (for ([v views])
         (send v update)))
     
@@ -28,8 +24,7 @@
   (class* object% (updateable<%>)
     (init [m false])
     
-    (define/public (update)
-      '...)
+    (abstract update)
     
     (super-new)))
 

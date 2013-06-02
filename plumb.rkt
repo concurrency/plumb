@@ -139,9 +139,6 @@
       (kill-thread run-id)
       (printf "Timed out in ~a seconds.~n" time))))
 
-(define-syntax-rule (with-timeout body ...)
-  (with-timeout* (timeout) body ...))
-
 (define (retrieve-board-config board)
   (let* ([url (make-server-url (HOST) (PORT) "board" board)]
          [resp-port (get-pure-port url)]

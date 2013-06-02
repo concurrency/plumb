@@ -77,6 +77,7 @@
        (last results))
      ]))
 
+#|
 (define o (new process%))
 (seq o
           [(initial? 'eight)
@@ -88,3 +89,5 @@
           )
             
 (send o to-string)
+
+|#

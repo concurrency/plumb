@@ -124,6 +124,7 @@
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
+#|
 (define (start-session req)
   (define session-id (format "jupiter-~a" (random-string 32)))
   (debug 'START-SESSION "session-id: ~a~n" session-id)
@@ -133,6 +134,7 @@
   (encode-response 
    (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))
   )
+|#
 
 (define (server-retrieve-board-config kind)
   (define response (make-parameter true))
@@ -266,6 +268,8 @@
    [("--config") name
                 "Choose platform config."
                 (load-config name)
+                ;; For time being
+                (enable-debug! 'ALL)
                 (serve)]
    
    ))

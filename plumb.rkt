@@ -22,6 +22,7 @@
 (define verbose-mode (make-parameter false))
 (define session-id   (make-parameter false))
 (define timeout (make-parameter 15))
+(define first-compilation? (make-parameter true))
 
 (define HOST (make-parameter false))
 (define PORT (make-parameter 9000))
@@ -306,7 +307,7 @@
              (board.config full-config)
              (debug 'USER-CODE "Board Config: ~a~n" (board.config))
              (code.hex hex)
-             (debug 'USER-CODE "~a" (code.hex))
+             (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
              (avrdude-code (serial.port) (code.hex))
              )]
           
@@ -378,6 +379,18 @@
   
   (PORT (get-config 'SERVER-PORT))
   
+  ;; If this is the first compilation, upload the firmware
+  (when (first-compilation?)
+    (debug 'FIRMWARE "Uploading firmware on first compilation.")
+    (first-compilation? false)
+    (let* ([board (board-choice->board-type
+                   (hash-ref (win) 'board))]
+           [full-config (retrieve-board-firmware (->string board))])
+      (board.config full-config)
+      (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
+      (firmware.hex (hash-ref (board.config) 'hex))
+      (avrdude-firmware (serial.port))))
+  
   ;; Needed for firmware
   (unless (directory-exists? (get-config 'TEMPDIR))
     (make-directory (get-config 'TEMPDIR)))
@@ -400,12 +413,40 @@
                      )]
          [full-config (retrieve-board-config board)]
          )
+    
+    (send (hash-ref ((hash-ref (win) 'compiler-response-window)) 'f) show true)
+    
     (board.config full-config)
     (debug 'USER-CODE "Board Config: ~a~n" (board.config))
     (code.hex hex)
-    (debug 'USER-CODE "~a" (code.hex))
+    (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
     (avrdude-code (serial.port) (code.hex))
     ))
+
+
+(define (compiler-response-window)
+  (define win (make-parameter (make-hash)))
+  (define f (new frame% 
+                 [label "Messages"]
+                 [width 300]
+                 [height 400]))
+  
+  (define editor-canvas (new editor-canvas%
+                           (parent f)
+                           (label "Editor Canvas")))
+  (define text (new text%))
+  
+  
+  
+  (send text insert "Response from server...")
+  (send editor-canvas set-editor text)
+  
+  (let ([w (make-hash `((f . ,f)
+                        (editor-canvas . ,editor-canvas)
+                        (text . ,text)))])
+    (win w)
+    win)
+  )
 
 
 
@@ -468,6 +509,7 @@
                     (board . ,board)
                     (choose-file . ,choose-file)
                     (compile . ,compile)
+                    (compiler-response-window . ,(compiler-response-window))
                     )))
   win)
 

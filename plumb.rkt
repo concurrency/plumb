@@ -168,7 +168,7 @@
     
     (try/catch content hash?
       (get-response 'ERROR)
-      (debug 'FIRMWARE "~a" (content))
+      (debug 'FIRMWARE "~a" (string-length (content)))
       )
     (content)))
 
@@ -305,7 +305,7 @@
                   [full-config (retrieve-board-config board)]
                   )
              (board.config full-config)
-             (debug 'USER-CODE "Board Config: ~a~n" (board.config))
+             (debug 'USER-CODE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
              (code.hex hex)
              (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
              (avrdude-code (serial.port) (code.hex))
@@ -352,10 +352,7 @@
     [else "arduino"]))
 
 
-(define (filter-hash hash key)
-  (let ([c (hash-copy hash)])
-    (hash-remove! c key)
-    c))
+
 
 (define (do-compilation win)
   
@@ -367,7 +364,7 @@
                          (send 
                           (hash-ref (win) 'serial-port)
                           get-selection)))))
-                       
+  
   (define code.hex (make-parameter false))
   (define firmware.hex (make-parameter false))
   (load-config (system-type))
@@ -395,7 +392,8 @@
       (board.config full-config)
       (debug 'FIRMWARE "Board Config: ~a~n" (board.config))
       (firmware.hex (hash-ref (board.config) 'hex))
-      (avrdude-firmware (serial.port))))
+      (avrdude-firmware (serial.port))
+      ))
   
   ;; Needed for firmware
   (unless (directory-exists? (get-config 'TEMPDIR))
@@ -425,7 +423,7 @@
     (board.config full-config)
     (debug 'USER-CODE "Board Config: ~a~n" (filter-hash (board.config) 'hex))
     (code.hex hex)
-    (debug 'USER-CODE "LENGTH: ~a" (code.hex))
+    (debug 'USER-CODE "LENGTH: ~a" (string-length (code.hex)))
     (avrdude-code (serial.port) (code.hex))
     ))
 
@@ -438,8 +436,8 @@
                  [height 400]))
   
   (define editor-canvas (new editor-canvas%
-                           (parent f)
-                           (label "Editor Canvas")))
+                             (parent f)
+                             (label "Editor Canvas")))
   (define text (new text%))
   
   

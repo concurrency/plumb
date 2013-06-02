@@ -99,3 +99,8 @@
              (apply string-append
                     (map (λ (p) (format "/~a" p)) 
                          (rest (rest args))))))))
+
+(define (filter-hash hash key)
+  (let ([c (hash-copy hash)])
+    (hash-remove! c key)
+    c))

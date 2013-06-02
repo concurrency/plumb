@@ -1,61 +1,23 @@
 #lang racket
- 
+
 (require db
          net/url)
 (require "path-handling.rkt"
          "response-handling.rkt"
          "util.rkt"
          "debug.rkt"
-         "sequential-ops.rkt"
+         "seq.rkt"
          )
 
 (provide (all-defined-out))
 
-(define (start-session HOST PORT)
-  ;; Create a new process object
-  (define p (new process% [context 'SESSION-START]))
-  
-  ;; Define a sequence of operations
-  (seq p
-    ;; We should be in the initial state, and flag a generic error
-    ;; in the event of problems.
-    [(initial? 'ERROR)
-     (debug 'START-SESSION "DEFAULT ERROR: ~a" (send p to-string))
-     (debug 'START-SESSION "SERVER URL: ~a" 
-            (url->string
-             (make-server-url (HOST) (PORT) "start-session")))
-     ;; Nothing should change as a result of this operation
-     NO-CHANGE]
-    
-    ;; We should still be in the initial state, and should
-    ;; flag a bad connection if all goes wrong.
-    [(initial? 'ERROR-NO-CONNECTION)
-     (get-pure-port (make-server-url (HOST) (PORT) "start-session"))]
-    
-    ;; Now we should have a port, and flag a bad response if 
-    ;; things go pear shaped.
-    [(port? 'ERROR-PROCESS-RESPONSE)
-     (debug 'START-SESSION "PORT: ~a" (send p to-string))
-     (process-response (send p get))]
-    
-    ;; The response should give us a hash table; we'll pull
-    ;; out the session ID.
-    [(hash? 'ERROR-BAD-RESPONSE)
-     (debug 'START-SESSION "RESPONSE: ~a" (send p to-string))
-     (hash-ref (send p get) 'sessionid)]
-    
-    ;; The session ID should be a symbol. We're just displaying
-    ;; it as a debug here, so this step should yield no changes.
-    [(string? 'ERROR-SESSION-ID-NOT-A-STRING)
-     (debug 'START-SESSION "SESSION ID: ~a" (send p get))
-     NO-CHANGE])
-  
-  ;; Send back the result
-  ;; FIXME: We should send back the process object,
-  ;; because it might be an error, and therfore not contain a good value.
-  (send p get)
-  )
- 
+(define start-session (void))
+
+
+
+
+
+
 (define (old-start-session HOST PORT session-id)
   
   (define response 
@@ -126,7 +88,7 @@
   "SELECT * FROM sessions WHERE sessionid = $1;")
 (define (session-exists? id)
   (= 1 (length (qr (sql:session-exists?) id))))
-    
+
 (define (sql:remove-session)
   "DELETE FROM sessions WHERE sessionid = $1;")
 (define (remove-session id)

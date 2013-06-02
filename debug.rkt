@@ -15,17 +15,6 @@
 (define-syntax-rule (debug key msg args ...)
   (when (or (member key (FLAGS))
             (member 'ALL (FLAGS)))
-    ;; Remove 'hex from debug messages.
-    ;; How ugly is this!
-    (let ([cleaned-args
-           (map (λ (a)
-                  (if (and (hash? a)
-                           (hash-ref a 'hex (λ () false)))
-                      (let ([c (hash-copy a)])
-                        (hash-set! c 'hex (string-length (hash-ref c 'hex)))
-                        c)
-                      a))
-                (list args ...))])
       (printf "[~a] ~a~n"
               key
-              (apply format (cons msg cleaned-args))))))
+              (format msg args ...))))

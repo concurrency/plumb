@@ -124,8 +124,7 @@
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
-#|
-(define (start-session req)
+(define (return-session-id req)
   (define session-id (format "jupiter-~a" (random-string 32)))
   (debug 'START-SESSION "session-id: ~a~n" session-id)
   (add-session session-id)
@@ -134,7 +133,6 @@
   (encode-response 
    (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))
   )
-|#
 
 (define (server-retrieve-board-config kind)
   (define response (make-parameter true))
@@ -226,7 +224,7 @@
 
 (define-values (dispatch blog-url)
   (dispatch-rules
-   [("start-session") start-session]
+   [("start-session") return-session-id]
    [("add-file" (string-arg)) add-file]
    [("compile" (string-arg) (string-arg) (string-arg)) guarded-compile-session]
    ;; Need guards and session ID checks on retrieve.

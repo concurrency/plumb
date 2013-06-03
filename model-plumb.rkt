@@ -56,7 +56,7 @@
            [compilation-result false]
            [message "Parallel programming for makers."]
            
-           [first-compilation? false]
+           [first-compilation? true]
            )
     
     

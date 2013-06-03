@@ -241,9 +241,15 @@
               [(macosx) 
                (build-path (find-system-path 'temp-dir) id)]
               [(win windows)
-               (for ([p (map getenv '(TMP TEMP USERPROFILE))]
-                     #:when (directory-exists? p))
-                 (build-path p id))]))
+               (let ([result (make-parameter false)])
+                 (for ([p (map getenv '("TMP" "TEMP" "USERPROFILsE"))])
+                   (debug 'CREATE-TEMP-DIR "Exists? [~a]" p)
+                   (when (and p
+                              (directory-exists? p)
+                              (not (result)))
+                     (result (build-path p id))))
+                 (debug 'CREATE-TEMP-DIR "Using [~a]" (result))
+                 (result))]))
       (cond
         [(directory-exists? temp-dir)
          (debug 'CREATE-TEMP-DIR "Temp dir [~a] exists" temp-dir)]
@@ -510,16 +516,24 @@
          (CODE)]
         
         [(path? 'ERROR-WRITE-CODE)
+         (debug (send p get-context) "Trying to write code to [~a]" (CODE))
          (parameterize ([current-directory temp-dir])
+           (debug (send p get-context) "Checking if file exists to delete.")
            (when (file-exists? (CODE))
+             (debug (send p get-context) "Deleting old code.")
              (delete-file (CODE)))
+           (debug (send p get-context) "Attempting to write code to temp directory.")
            (with-output-to-file (CODE)
              (thunk
-              (printf "~a~n" hex))))]
+              (printf "~a" hex))))]
         
         [(any? 'ERROR-UPLOAD-CODE)
-         (exe-in-tempdir temp-dir
-          (avrdude-cmd config (CODE) board-config arduino-port))]
+         (debug (send p get-context) "Attempting to upload code with AVRDUDE.")
+         ;; This must be run within the temp directory.
+         ;; AVRDUDE on Windows has issues with a full path to the HEX file.
+         (let ([cmd (avrdude-cmd config (CODE) board-config arduino-port)])
+           (debug (send p get-context) "CMD:~n~a~n" cmd)
+           (exe-in-tempdir temp-dir cmd))]
         
         [(any? 'ERROR-UPLOAD-RESULT)
          (cond

@@ -35,14 +35,22 @@
 (define (install-firmware board-config)
   '...)
 
+(define (quote-path path)
+  (case (system-type)
+    ;; FIXME
+    ;; Might be a problem on the Mac as well.
+    [(macosx) (path->string path)]
+    [(windows)
+     (format "\"~a\"" (path->string path))]))
+
 (define (avrdude-cmd config file board-config serial-port)
   (system-call
-   (send config get-config 'AVRDUDE)
-   `(-C ,(->string (send config get-config 'AVRDUDE.CONF))
+   (quote-path (send config get-config 'AVRDUDE))
+   `(-C ,(quote-path (send config get-config 'AVRDUDE.CONF))
         -V -F 
         (-p ,(hash-ref board-config 'mcpu))
         (-b ,(hash-ref board-config 'baud))
         (-c arduino)
         (-P ,serial-port)
         -D -U 
-        ,(format "flash:w:~a" file))))
+        ,(format "flash:w:~a" (extract-filename file)))))

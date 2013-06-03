@@ -1,57 +1,38 @@
-jupiter
+plumb
 =======
 
-A browser-based environment for editing occam-pi. And...
+### Summary
 
-* A stub server for uploading bytecode to the Arduino
-* A TVM compiled to Javascript for directly executing occam-pi in the browser.
+**plumb** runs occam programs on your Arduino. To use **plumb**, you must have an active Internet connection.
 
-Reason: Eliminate shipping native IDEs and toolchains.
+**plumb** runs programs on your Arduino through a sequence of steps:
 
-## Step 1: Arduino C++
+1. Sending your code to a server.
+1. The server transforms (compiles) your program to something that the Arduino can execute.
+1. plumb then takes the transformed file and uploads it to your Arduino.
 
-Proof-of-concept: compile C++ for the Arduino, ship .hex, upload to AVR.
+### Get The Software
 
-## Step 2: occam-pi
+We have installable apps for Mac and Windows. Linux available upon request.
 
-1. Write occam-pi in the browser.
-2. Ship to a (sane, Linux) server. Compile.
-3. Ship back bytecode.
-4. Send bytecode to (local) stub. (server.rkt)
-5. Upload to Arduino.
+* [Windows (64-bit)](#FIXME)
+* [Mac (64-bit)](#FIXME)
 
-## Step 3: TVM in the Browser
+### Getting Help
 
-1. Compile TVM with Emcscripten (https://github.com/kripken/emscripten)
-2. Write wrapper for browser.
-3. User server-side compiler for generating bytecode.
-4. Run bytecode directly in browser.
+You can use the "Help" option in plumb (either in the command-line or GUI version), or you can join the [users@concurrency.cc](#FIXME) mailing list. We're always excited to help new occam programmers get started.
 
-## Possibilities
+Also, check out [these books](#FIXME), which will help you get started with occam and the Plumbing libraries.
 
-* Compile kroc with emscripten; run compiler in browser?
-* Support novice programmer research on Arduino C++/occam-pi.
-* Add visualization components (http://www.graphdracula.net/de/)
+### Contributing
 
-## Javascript Libraries
+Join us on the [developers@concurrency.cc](#FIXME) mailing list to ask about how you can contribute. 
 
-I might want to use Parse for all of the data/user/backend work.
+* occam-pi libraries to support specific hardware, or to provide useful utilities are always welcome.
 
-https://parse.com/docs/rest
+* Documentation is always welcome. The wiki associated with this Github repository contains the help for plumb, and contributors only need a (free) Github account to help improve the docs.
 
-I think this gives me some magic authenticate/login code that I can use, which would simplify the create account/login/etc. loop that I'm going to need.
+* Racket (nee Scheme) hackers are welcome to contribute to the plumb client or server.
 
-Or, perhaps I should just use GitHub for everything; have people OAuth against it, and then use a repository for all of their code?
+* Autotools experts are welcome to help with the build system.
 
-http://developer.github.com/v3/oauth/
-
-I could also do it all in gists, but that would be ugly.
-
-I think I might want to use async for managing the sequencing of callbacks:
-
-https://github.com/caolan/async#readme
-
-
-
-### References
-* http://stackoverflow.com/questions/11584061/automatically-adjust-height-to-contents-in-ace-cloud9-editor

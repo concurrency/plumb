@@ -18,9 +18,14 @@
     ;; These default to false
     (field [id false]
            [conf false]
-           [board false])
+           [board false]
+           [compilation-result false]
+           )
     
     (define/public (get-id) id)
+    
+    (define/public (get-compilation-result)
+      compilation-result)
     
     (define (start-session)
       ;; Create a new process object
@@ -66,7 +71,7 @@
       )
     
     (define (init)
-      (start-session host port))
+      (start-session))
     
     (super-new)
     (init)))

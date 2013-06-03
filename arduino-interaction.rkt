@@ -28,3 +28,7 @@
            (srfi1:iota 15)))
      ]
     ))
+
+(define (install-firmware board-config)
+  '...)
+  

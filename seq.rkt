@@ -19,7 +19,10 @@
 
 (define process%
   (class object%
-    (init-field [context "NO CONTEXT"])
+    (init-field [context "NO CONTEXT"]
+                [update (λ (m) 
+                          (format "Update from ~a" context))]
+                )
     (field [status 'OK]
            [value 'INITIAL])
     
@@ -37,7 +40,9 @@
       (pred? value))
     
     (define/public (on-error flag)
-      (set! status flag))
+      (set! status flag)
+      (update flag)
+      )
     
     (define/public (to-string)
       (format "[~a] ~a" status value))

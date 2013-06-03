@@ -52,11 +52,6 @@
       (write (list-ref CHARS (random (length CHARS))) sp))
     (get-output-string sp)))
 
-(define (occam-file? filename)
-  (regexp-match "\\.occ$" filename))
-
-(define (file-extension filename)
-  (third (regexp-match "^(.*)\\.(.*?)$" (extract-filename filename))))
 
 (define (read-all port)
   (let ([content ""])
@@ -89,6 +84,15 @@
   (define-values (base name dir?) (split-path path))
   (->string base))
 
+
+(define (occam-file? filename)
+  (regexp-match "\\.occ$" filename))
+
+(define (hex-file? filename)
+  (regexp-match "\\.hex$" filename))
+
+(define (file-extension filename)
+  (third (regexp-match "^(.*)\\.(.*?)$" (extract-filename filename))))
 
 (define make-server-url 
   (λ args

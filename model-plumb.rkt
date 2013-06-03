@@ -13,8 +13,11 @@
          "debug.rkt"
          "util.rkt"
          "response-handling.rkt"
+         "code-execution.rkt"
          "config-client.rkt"
          )
+
+(define MIN-FIRMWARE-SIZE 10000)
 
 (define plumb%
   (class model%
@@ -45,6 +48,8 @@
            [board-type false]
            
            [main-file false]
+           [temp-dir false]
+           [firmware-location false]
            
            [compilation-result false]
            [message "Parallel programming for makers."]
@@ -183,7 +188,7 @@
          (process-response (send gbc get))]
         ;; Store it
         [(hash? 'ERROR-STORING-BOARD-CONFIG)
-         (debug 'BOARD-CONFIG "~a" (filter-hash (send gbc get) 'hex))
+         (debug (send gbc get-context) "~a" (filter-hash (send gbc get) 'hex))
          (set! board-config (send gbc get))
          NO-CHANGE])
       
@@ -201,10 +206,10 @@
         [(hash? 'ERROR-FIRMWARE-LOOKS-KINDA-SHORT)
          (let ([firm-leng (string-length (hash-ref (send firm get) 'hex))])
            (cond
-             [(< firm-leng 15000)
+             [(< firm-leng MIN-FIRMWARE-SIZE)
               (raise)]
              [else
-              (debug 'FIRMWARE "Firmware length: ~a" firm-leng)])
+              (debug (send firm get-context) "Firmware length: ~a" firm-leng)])
            NO-CHANGE)])
       )
     
@@ -227,7 +232,36 @@
     
     (define/public (main-file-set?)
       (and main-file (file-exists? main-file)))
-
+    
+    (define (create-temp-dir)
+      (set! temp-dir
+            (case (->sym (system-type))
+              [(macosx) 
+               (build-path (find-system-path 'temp-dir) id)]
+              [(win windows)
+               (for ([p (map getenv '(TMP TEMP USERPROFILE))]
+                     #:when (directory-exists? p))
+                 (build-path p id))]))
+      (cond
+        [(directory-exists? temp-dir)
+         (debug 'CREATE-TEMP-DIR "Temp dir [~a] exists" temp-dir)]
+        [else 
+         (debug 'CREATE-TEMP-DIR "Creating [~a]" temp-dir)
+         (make-directory temp-dir)]))
+    
+    (define (cleanup-temp-dir)
+      (define extensions '(hex))
+      (when (directory-exists? temp-dir)
+        (for ([f (directory-list temp-dir)])
+          (debug 'TEMP-DIR "Checking [~a] for removal." f)
+          (when (member (->sym (file-extension f)) extensions)
+            (debug 'TEMP-DIR "Removing [~a]." f)
+            (delete-file (build-path temp-dir f))))
+        (debug 'TEMP-DIR "Removing temp directory [~a]" temp-dir)
+        (delete-directory temp-dir)
+        (set! temp-dir false)))
+    
+    
     ;   ;;       ;;    ;;        ;;;;;    ;;   
     ;   ;;;     ;;;  ;;;;;     ;;;  ;;; ;;;;;  
     ;   ;;;;   ;;;;  ;; ;      ;      ; ;; ;   
@@ -264,8 +298,124 @@
     ;       ;;                                                                  
     ;        ;                                                                  
     
+    (define (any? v) v)
+    
+    
+    ;; FIXME
+    ;; Need better checks down below
+    (define FIXME (λ args true))
     (define/public (check-syntax)
-      (define p (new process% [context 'CHECK-SYNTAX]))
+      'FIXME)
+    
+    
+    
+    ;   ;;;;;;; ;;  ;;;;;    ;;       ;; ;;     ;     ;;    ;;     ;;;;;    ;;;;;;; 
+    ;   ;;;;;;; ;;  ;;;;;;;  ;;;     ;;;  ;    ;;;    ;     ;;     ;;;;;;;  ;;;;;;; 
+    ;   ;;      ;;  ;;   ;;  ;;;;   ;;;;  ;;   ;;;   ;;    ;;;;    ;;   ;;  ;;      
+    ;   ;;      ;;  ;;   ;;  ;; ;; ;; ;;  ;;   ;;;   ;;    ;;;;    ;;   ;;  ;;      
+    ;   ;;;;;;  ;;  ;;   ;;  ;; ;; ;; ;;   ;  ;; ;;  ;     ;  ;;   ;;   ;;  ;;;;;;  
+    ;   ;;;;;;  ;;  ;;;;;;   ;;  ;;;  ;;   ;; ;; ;; ;;    ;;  ;;   ;;;;;;   ;;;;;;  
+    ;   ;;      ;;  ;;;;;;   ;;   ;   ;;   ;; ;; ;; ;;    ;;   ;   ;;;;;;   ;;      
+    ;   ;;      ;;  ;;  ;;   ;;       ;;   ;;;;   ;;;    ;;;;;;;;  ;;  ;;   ;;      
+    ;   ;;      ;;  ;;   ;;  ;;       ;;    ;;;   ;;;    ;;;;;;;;  ;;   ;;  ;;      
+    ;   ;;      ;;  ;;    ;; ;;       ;;    ;;;   ;;;    ;;     ;; ;;    ;; ;;      
+    ;   ;;      ;;  ;;    ;;;;;       ;;    ;;     ;;   ;;      ;; ;;    ;;;;;;;;;; 
+    
+    (define (write-firmware)
+      (define p (new process% 
+                     [context 'WRITE-FIRMWARE]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (define FIRM (make-parameter "tvm.hex")) 
+      (seq p
+        ;; Get the firmware on first compilation
+        [(initial? 'ERROR-RETRIEVING-FIRMWARE)
+         (get-board-config)
+         board-config]
+        
+        ;; Create a temp directory
+        [(any? 'ERROR-CREATE-TEMP-DIRECTORY)
+         (debug (send p get-context) "Creating temporary directory")
+         (create-temp-dir)
+         temp-dir]
+        
+        ;; Remove old firmware
+        [(any? 'ERROR-REMOVE-OLD-FIRMWARE)
+         (FIRM (build-path temp-dir (FIRM)))
+         
+         (debug (send p get-context)
+                "Stale firmware at [~a]?"
+                (FIRM))
+         
+         (when (file-exists? (FIRM))
+           (debug (send p get-context) "Removing old firmware.")
+           (delete-file (FIRM)))
+         NO-CHANGE]
+        
+        ;; Write new firmware
+        [(any? 'ERROR-WRITE-FIRMWARE)
+         (debug (send p get-context) "Writing firmware to disk.")
+         (with-output-to-file (FIRM)
+           (thunk 
+            (printf "~a~n" (hash-ref board-config 'hex))))
+         (debug (send p get-context) "Written.")
+         (set! firmware-location (FIRM))
+         (file-size (FIRM))]
+        
+        [(number? 'ERROR-FIRMWARE-SIZE)
+         (debug (send p get-context) "Checking filesize.")
+         (when (< (send p get) MIN-FIRMWARE-SIZE)
+           (set! firmware-location false)
+           (set! message (format "TVM Too Small: ~a" (send p get))))
+         NO-CHANGE]
+        ))
+    
+    (define (upload-firmware)
+      (define p (new process% 
+                     [context 'UPLOAD-FIRMWARE]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (seq p
+        [(initial? 'ERROR-UPLOADING-FIRMWARE)
+         (debug (send p get-context) "Uploading firmware.")
+         (let ([cmd (avrdude-cmd config firmware-location board-config arduino-port)])
+           (debug (send p get-context) "CMD:~n\t~a" cmd)
+           (exe-in-tempdir temp-dir cmd)
+           )]
+        
+        [(zero? 'ERROR-WITH-AVRDUDE)
+         (debug (send p get-context) "Upload successful.")
+         NO-CHANGE]
+        ))
+    
+    
+    ;      ;;;;       ;;;;     ;;       ;;  ;;;;;;  ;;  ;;      ;;;;;;; 
+    ;    ;;;;;;;;   ;;;;;;;;   ;;;     ;;;  ;;  ;;; ;;  ;;      ;;;;;;; 
+    ;   ;;;     ;  ;;;    ;;;  ;;;;   ;;;;  ;;   ;; ;;  ;;      ;;      
+    ;   ;;         ;;      ;;  ;; ;; ;; ;;  ;;   ;; ;;  ;;      ;;      
+    ;  ;;          ;        ;  ;; ;; ;; ;;  ;;   ;; ;;  ;;      ;;;;;;  
+    ;  ;;          ;        ;  ;;  ;;;  ;;  ;;;;;;; ;;  ;;      ;;;;;;  
+    ;  ;;          ;        ;  ;;   ;   ;;  ;;;;;;  ;;  ;;      ;;      
+    ;  ;;          ;;      ;;  ;;       ;;  ;;      ;;  ;;      ;;      
+    ;   ;;      ;  ;;;    ;;   ;;       ;;  ;;      ;;  ;;      ;;      
+    ;    ;;;  ;;;   ;;;;;;;;   ;;       ;;  ;;      ;;  ;;;;;;; ;;      
+    ;     ;;;;;;      ;;;;     ;;       ;;  ;;      ;;  ;;;;;;; ;;;;;;; 
+    
+    
+    (define/public (compile)
+      (define p (new process% 
+                     [context 'CHECK-SYNTAX]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
       (seq p
         ;; Get a session ID
         [(initial? 'ID-FETCH)
@@ -282,13 +432,24 @@
          (set! config (new client-config%))
          NO-CHANGE]
         
-        ;; Get the firmware on first compilation
-        [(string? 'ERROR-RETRIEVING-FIRMWARE)
-         (get-board-config)
+        ;; Write out the firmware
+        [(FIXME 'ERROR-WRITING-FIRMWARE)
+         (write-firmware)
          NO-CHANGE]
+        
+        [(FIXME 'ERROR-UPLOADING-FIRMWARE)
+         (upload-firmware)
+         NO-CHANGE]
+        
+        ;; Compile the code
+        
+        ;; Update the messages based on compilation results
+        
+        ;; Check for a temporary directory
+        
+        ;; Upload the firwmare if first compilation
+        ;; Write out the code
+        ;; Upload the code
         ))
-    
-    
-    
     
     ))

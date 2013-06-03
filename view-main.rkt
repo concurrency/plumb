@@ -93,8 +93,9 @@
                      [stretchable-width true]
                      [enabled false]
                      [callback (λ (b e)
+                                 (update-model)
                                  (set-remote-host)
-                                 (send model do-compilation))]
+                                 (send model compile))]
                      ))
     
     (define messages (new message%

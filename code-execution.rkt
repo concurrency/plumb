@@ -1,19 +1,21 @@
 #lang racket
 
-(provide (all-defined-out))
-(require "path-handling.rkt"
-         "session-management.rkt"
-         "util.rkt")
+(provide system-call
+         exe-in-tempdir
+         exe-in-session
+         )
+(require "util.rkt")
 
 ;; CODE EXECUTION
 ;;;;;;;;;;;;;;;;;;
 
-(define (exe-in-tempdir cmd)
-  (parameterize ([current-directory (get-config 'TEMPDIR)])
+(define (exe-in-tempdir temp-dir cmd)
+  (parameterize ([current-directory temp-dir])
     (system/exit-code cmd)))    
 
-(define (exe-in-session id cmd)
-  (parameterize ([current-directory (session-dir id)])
+;; Server side... FIXME
+(define (exe-in-session config id cmd)
+  (parameterize ([current-directory (send config get-config 'SESSION-DIR)])
     (system/exit-code cmd)))
 
 (define (system-call prog flags)

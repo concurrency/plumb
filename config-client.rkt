@@ -10,10 +10,10 @@
     
     (field [data (make-hash)])
     
-    (define (add-config key val)
+    (define/public (add-config key val)
       (hash-set! data key val))
     
-    (define (get-config key)
+    (define/public (get-config key)
       (hash-ref data key))
     
     (define (bp cmd)

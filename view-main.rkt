@@ -24,7 +24,7 @@
     (init-field model)
     
     (define f (new frame%
-                   [label "Plumb GUI"]
+                   [label "Plumb @ concurrency.cc"]
                    [width 400]
                    [height 200]
                    ))

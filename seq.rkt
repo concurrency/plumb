@@ -32,7 +32,6 @@
     
     (define/public (get) value)
     
-    
     (define/public (status-ok?)
       (equal? status 'OK))
     
@@ -51,6 +50,9 @@
       context)
     (define/public (get-error)
       status)
+    
+    (define/public (message m)
+      (update m))
     
     (super-new)))
 

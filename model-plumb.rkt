@@ -4,8 +4,10 @@
 
 (require racket/gui
          net/url
-         net/dns)
-(require net/url)
+         net/dns
+         net/base64
+         json)
+
 (require "arduino-interaction.rkt"
          "util.rkt"
          "mvc.rkt"
@@ -54,7 +56,7 @@
            [compilation-result false]
            [message "Parallel programming for makers."]
            
-           [first-compilation? true]
+           [first-compilation? false]
            )
     
     
@@ -303,10 +305,9 @@
     
     ;; FIXME
     ;; Need better checks down below
-    (define FIXME (λ args true))
+    
     (define/public (check-syntax)
       'FIXME)
-    
     
     
     ;   ;;;;;;; ;;  ;;;;;    ;;       ;; ;;     ;     ;;    ;;     ;;;;;    ;;;;;;; 
@@ -407,9 +408,8 @@
     ;    ;;;  ;;;   ;;;;;;;;   ;;       ;;  ;;      ;;  ;;;;;;; ;;      
     ;     ;;;;;;      ;;;;     ;;       ;;  ;;      ;;  ;;;;;;; ;;;;;;; 
     
-    
-    (define/public (compile)
-      (define p (new process% 
+    (define (add-file file-path)
+      (define p (new process%  
                      [context 'CHECK-SYNTAX]
                      [update (λ (msg)
                                (set! message (format "~a: ~a"
@@ -417,8 +417,131 @@
                                                      (->string msg)))
                                (update))]))
       (seq p
+        ;; Check file exists
+        [(initial? 'ERROR-NO-FILE)
+         (unless (file-exists? file-path) (error))
+         NO-CHANGE]
+        
+        ;; Read the file
+        [(initial? 'ERROR-CANNOT-READ)
+         (file->string file-path)]
+        
+        [(string? 'ERROR-PREPARE-JSON)
+         (let ([json `((filename . ,(extract-filename file-path))
+                       (code . ,(send p get))
+                       (sessionid . ,id)
+                       (action . "add-file"))])
+           (debug 'ADD-FILE "~a" json)
+           (make-hash json))]
+        
+        ;; Encode the jsexpr
+        [(hash? 'ERROR-JSON-ENCODE)
+         (jsexpr->string (send p get))]
+        
+        ;; Base64 encode the JSON string
+        [(string? 'ERROR-B64-ENCODE)
+         (base64-encode (string->bytes/utf-8 (send p get)))]
+        
+        ;; Do the GET
+        [(bytes? 'ERROR-HTTP-GET)
+         (get-pure-port
+          (make-server-url host port "add-file" (send p get)))]
+        
+        ;; Process the result
+        [(port? 'ERROR-PROCESS-RESPONSE)
+         (process-response (send p get))]
+        
+        ))
+    
+    
+    (define (compile-main-file)
+      (define p (new process% 
+                     [context 'COMPILE-MAIN-FILE]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (debug 'COMPILE "Compiling on HOST ~a PORT ~a~n" host port)
+      
+      (seq p 
+        [(initial? 'ERROR-MAKE-URL)
+         (make-server-url host port "compile" id board-type (extract-filename main-file))]
+        
+        [(url? 'ERROR-MAKE-PORT)
+         (get-pure-port (send p get))]
+        
+        [(port? 'ERROR-PROCESS-RESPONSE)
+         (let ([resp (process-response (send p get))])
+           (close-input-port (send p get))
+           resp)]
+        
+        [(any? 'ERROR-CHECK-RESPONSE)
+         (let ([v (send p get)])
+           (cond 
+             [(or (error-response? v)
+                  (eof-object? v))
+              v]
+             [else
+              (debug 'COMPILE "Code Size: ~a" (string-length
+                                               (hash-ref v 'hex)))
+              (hash-ref v 'hex)]))])
+      (send p get))
+    
+    
+    (define (write-and-upload-code hex)
+      (define CODE (make-parameter false))
+      (define p (new process% 
+                     [context 'WRITE-CODE]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (seq p
+        [(initial? 'ERROR-RETRIEVING-BOARD-CONFIG)
+         (get-board-config)
+         board-config]
+        
+        [(hash? 'ERROR-CREATE-TEMP-DIRECTORY)
+         (debug (send p get-context) "Creating temporary directory")
+         (create-temp-dir)
+         (CODE (build-path temp-dir "code.hex"))
+         (CODE)]
+        
+        [(path? 'ERROR-WRITE-CODE)
+         (parameterize ([current-directory temp-dir])
+           (when (file-exists? (CODE))
+             (delete-file (CODE)))
+           (with-output-to-file (CODE)
+             (thunk
+              (printf "~a~n" hex))))]
+        
+        [(any? 'ERROR-UPLOAD-CODE)
+         (exe-in-tempdir temp-dir
+          (avrdude-cmd config (CODE) board-config arduino-port))]
+        
+        [(any? 'ERROR-UPLOAD-RESULT)
+         (cond
+           [(zero? (send p get)) 'OK]
+           [else (send p get)])])
+      
+      (send p get)
+      )
+    
+    
+    (define/public (compile)
+      (define FIXME (λ args true))
+      (define p (new process% 
+                     [context 'COMPILE]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (seq p
         ;; Get a session ID
-        [(initial? 'ID-FETCH)
+        [(initial? 'ERROR-ID-FETCH)
          (get-new-session-id)
          id]
         ;; Check
@@ -434,22 +557,54 @@
         
         ;; Write out the firmware
         [(FIXME 'ERROR-WRITING-FIRMWARE)
-         (write-firmware)
+         (when first-compilation?
+           (write-firmware)
+           (upload-firmware)
+           (set! first-compilation? false))
          NO-CHANGE]
         
-        [(FIXME 'ERROR-UPLOADING-FIRMWARE)
-         (upload-firmware)
+        ;; List the files in the code directory
+        [(pass 'ERROR-LISTING-FILES)
+         (parameterize ([current-directory (extract-filedir main-file)])
+           (filter (λ (f)
+                     (member (->sym (file-extension f))
+                             '(occ inc module)))
+                   (filter file-exists? (directory-list))))]
+        
+        ;; Add them to the server
+        [(list? 'ERROR-ADDING-FILES)
+         (debug 'COMPILE "Adding files: ~a" (send p get))
+         (send p message "Uploading code.")
+         (parameterize ([current-directory (extract-filedir main-file)])
+           (for ([f (send p get)])
+             (add-file f)))
          NO-CHANGE]
         
-        ;; Compile the code
+        ;; Tell the server to compile
+        [(list? 'ERROR-COMPILING-CODE)
+         (send p message "Compiling code.")
+         (compile-main-file)]
         
-        ;; Update the messages based on compilation results
+        [(string? 'ERROR-WRITING-CODE)
+         (send p message "Sending code to Arduino.")
+         (write-and-upload-code (send p get))]
         
-        ;; Check for a temporary directory
+        [(symbol? 'DEBUG)
+         (let ([positives '("Everything's groovy."
+                            "Five-by-five on the Arduino."
+                            "Super-freaky code is running on the Arduino."
+                            "I'm running AMAZING code."
+                            "You should be well chuffed."
+                            "Good job."
+                            "One giant program for Arduino kind."
+                            "Help, I'm stuck in an Arduino factory!")])
+         (case (send p get)
+           [(OK) (send p message (list-ref positives (random (length positives))))]
+           [else
+            (send p message (format "GURU MEDITATION NUMBER ~a"
+                                    (number->string (+ (random 2000000) 2000000) 16)))])
+           )]
         
-        ;; Upload the firwmare if first compilation
-        ;; Write out the code
-        ;; Upload the code
         ))
     
     ))

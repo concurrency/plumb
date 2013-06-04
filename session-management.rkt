@@ -4,16 +4,12 @@
          net/url)
 (require "path-handling.rkt"
          ;"response-handling.rkt"
-         
          "util.rkt"
          "debug.rkt"
          "seq.rkt"
          )
 
 (provide (all-defined-out))
-
-(define start-session (error "DO NOT USE start-session from session-management!"))
-
 
 (define (make-session-dir rs)
   (make-directory (session-dir rs)))

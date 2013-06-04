@@ -64,7 +64,7 @@
     (define names (generate-names main-file))
     
     ;; The server should load this, so we can compile with it.
-    (add-config (config) 'BOARD (server-retrieve-board-config board))
+    (send (config) add-config 'BOARD (server-retrieve-board-config board))
     
     (response (compile session-id (compile-cmd names)))
     
@@ -169,7 +169,7 @@
   ;; Build a path to the config
   (set/catch response boolean?
     (get-response 'ERROR)
-    (build-path (send (config) 'CONFIG-BOARDS)
+    (build-path (send (config) get-config 'CONFIG-BOARDS)
                 (format "~a.conf" (extract-filename kind))))
   
   (debug 'BOARD-CONFIG "~a" (response))
@@ -200,7 +200,7 @@
   ;; Build a path to the firmware
   (set/catch response boolean?
     (get-response 'ERROR)
-    (build-path (send (config) 'FIRMWARES) (extract-filename firm)))
+    (build-path (send (config) get-config 'FIRMWARES) (extract-filename firm)))
   
   (debug 'FIRMWARE "~a" (response))
   
@@ -235,8 +235,8 @@
    ))
 
 (define (init)
-  (unless (directory-exists? (send (config) 'TEMPDIR))
-    (make-directory (send (config) 'TEMPDIR)))
+  (unless (directory-exists? (send (config) get-config 'TEMPDIR))
+    (make-directory (send (config) get-config 'TEMPDIR)))
   (init-db))
 
 (define (serve)
@@ -245,8 +245,8 @@
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch
                    #:launch-browser? false
-                   #:port (send (config) 'PORT)
-                   #:listen-ip (send (config) 'LISTEN-IP) ;"192.168.254.201" ; remote.org
+                   #:port (send (config) get-config 'PORT)
+                   #:listen-ip (send (config) get-config 'LISTEN-IP) ;"192.168.254.201" ; remote.org
                    #:server-root-path (current-directory)
                    #:extra-files-paths 
                    (list 
@@ -257,31 +257,32 @@
 
 
 (define server 
-  (define P (make-parameter false))
-  (command-line
-   #:program "server"
-   #:multi
-   [("-d" "--debug") flag
-                     "Enable debug flag."
-                     (enable-debug! (->sym flag))]
-   
-   #:once-each 
-   [("--config") name
-                 "Choose platform config."
-                 (config (new server-config%))
-                 ;; For time being
-                 (enable-debug! 'ALL)
-                 ]
-   
-   ;; Must come after --config on command line
-   [("--port") port
-               "Set the server port"
-               (P (string->number port))]
-   
-   (when (not (config))
-     (config (new server-config%)))
-   (when (not (P))
-     (add-config 'PORT (P)))
-   (enable-debug! 'ALL)
-   (serve)
-   ))
+  (let ()
+    (define P (make-parameter false))
+    (command-line
+     #:program "server"
+     #:multi
+     [("-d" "--debug") flag
+                       "Enable debug flag."
+                       (enable-debug! (->sym flag))]
+     
+     #:once-each 
+     [("--config") name
+                   "Choose platform config."
+                   (config (new server-config%))
+                   ;; For time being
+                   (enable-debug! 'ALL)
+                   ]
+     
+     ;; Must come after --config on command line
+     [("--port") port
+                 "Set the server port"
+                 (P (string->number port))]
+     #:args 
+     (when (not (config))
+       (config (new server-config%)))
+     (when (not (P))
+       (send (config) add-config 'PORT (P)))
+     (enable-debug! 'ALL)
+     (serve)
+     )))

@@ -1,5 +1,7 @@
 #lang racket
 
+(provide server-config%)
+
 (require "config.rkt"
          "util.rkt"
          "debug.rkt")

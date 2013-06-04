@@ -38,7 +38,7 @@
   ;; Make sure it exists
   (try/catch resp success-response?
     (get-response 'ERROR)
-    (parameterize ([current-directory (session-dir session-id)])
+    (parameterize ([current-directory (session-dir config session-id)])
       (unless (file-exists? (extract-filename main-file))
         (error (format "File does not exist: ~a" main-file)))))
   
@@ -58,7 +58,7 @@
   (encode-response (resp)))
 
 (define (compile-session req session-id board main-file)
-  (parameterize ([current-directory (session-dir session-id)])
+  (parameterize ([current-directory (session-dir config session-id)])
     ;; Assume a successful build.
     (define response (make-parameter (get-response 'OK-BUILD)))
     (define names (generate-names main-file))
@@ -66,7 +66,7 @@
     ;; The server should load this, so we can compile with it.
     (send (config) add-config 'BOARD (server-retrieve-board-config board))
     
-    (response (compile session-id (compile-cmd names)))
+    (response (compile config session-id (compile-cmd names)))
     
     ;; If things compiled, then we should link.
     (set/catch response success-response?
@@ -117,7 +117,7 @@
     (let ([code (hash-ref (result) 'code)]
           [filename (hash-ref (result) 'filename)]
           [session-id (hash-ref (result) 'sessionid)])
-      (add-session-file session-id filename code)
+      (add-session-file config session-id filename code)
       (get-response 'OK-ADD-FILE)
       ))
   
@@ -130,7 +130,7 @@
   (define session-id (format "jupiter-~a" (random-string 32)))
   (debug 'START-SESSION "session-id: ~a~n" session-id)
   (add-session session-id)
-  (make-session-dir session-id)
+  (make-session-dir config session-id)
   ;; Return the session ID.
   (encode-response 
    (get-response 'OK-SESSION-ID #:extra `((sessionid . ,session-id))))

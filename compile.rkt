@@ -28,8 +28,8 @@
 
      
 
-(define (compile id cmd)
-  (parameterize ([current-directory (session-dir id)])
+(define (compile config id cmd)
+  (parameterize ([current-directory (session-dir config id)])
     (debug 'COMPILE "Current directory: ~a~n" (current-directory))
     (debug 'COMPILE "****~n~a~n****~n" cmd)
            
@@ -88,8 +88,8 @@
               ;; --program needs to come last
               --program ,(hash-ref names 'occ))))
 
-(define (output-exists? id names ext)
-  (parameterize ([current-directory (session-dir id)])
+(define (output-exists? config id names ext)
+  (parameterize ([current-directory (session-dir config id)])
     (file-exists? (hash-ref names ext))))
 
 (define (plink session-id names)

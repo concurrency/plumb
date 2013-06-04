@@ -2,8 +2,8 @@
 
 (require db
          net/url)
-(require "path-handling.rkt"
-         ;"response-handling.rkt"
+(require ;"path-handling.rkt"
+         "response-handling.rkt"
          "util.rkt"
          "debug.rkt"
          "seq.rkt"
@@ -11,16 +11,16 @@
 
 (provide (all-defined-out))
 
-(define (make-session-dir rs)
-  (make-directory (session-dir rs)))
+(define (make-session-dir config rs)
+  (make-directory (session-dir config rs)))
 
 ;; Make sure this is a good session ID
 ;; This could be the gatekeeper
-(define (session-dir session-id)
-  (build-path (get-config 'TEMPDIR) session-id))
+(define (session-dir config session-id)
+  (build-path (send (config) get-config 'TEMPDIR) session-id))
 
-(define (add-session-file session-id filename code)
-  (parameterize ([current-directory (session-dir session-id)])
+(define (add-session-file config session-id filename code)
+  (parameterize ([current-directory (session-dir config session-id)])
     (let ([fp (open-output-file filename #:exists 'replace)])
       (display code fp)
       (newline fp)
@@ -74,18 +74,18 @@
       )))
 
 ;; This should be an order-maintained list, not a hash
-(define (cleanup-session id)
+(define (cleanup-session config id)
   ;; Now, cleanup the specified session.
   (when (session-exists? id)
     ;; Remove it from the DB
     (remove-session id)
     ;; Make sure it is in the filesystem
-    (when (directory-exists? (session-dir id))
+    (when (directory-exists? (session-dir config id))
       ;; Remove all the files in the directory
-      (parameterize ([current-directory (session-dir id)])
+      (parameterize ([current-directory (session-dir config id)])
         (for ([f (directory-list)])
           (delete-file f)))
       ;; Then the directory
-      (delete-directory (session-dir id)))
+      (delete-directory (session-dir config id)))
     )
   )

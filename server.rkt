@@ -52,7 +52,7 @@
   ;; Compile. The result will be a response.
   (set/catch resp success-response?
     (get-response 'ERROR-COMPILE-UNKNOWN)
-    (compile-session req session-id board main-file))
+    (compile-session req config session-id board main-file))
   
   ;; Passing back to the webserver
   (encode-response (resp)))
@@ -71,12 +71,12 @@
     ;; If things compiled, then we should link.
     (set/catch response success-response?
       (get-response 'ERROR-LINK)
-      (plink session-id names))
+      (plink config session-id names))
     
     ;; If things linked, we should binhex.
     (set/catch response success-response?
       (get-response 'ERROR-BINHEX)
-      (binhex session-id names))
+      (binhex config session-id names))
     
     (set/catch response success-response?
       (get-response 'ERROR-READING-HEX)

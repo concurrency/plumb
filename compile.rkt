@@ -1,7 +1,7 @@
 #lang racket
 (require "util.rkt"
          "debug.rkt"
-         "path-handling.rkt"
+         ;"path-handling.rkt"
          "response-handling.rkt"
          "session-management.rkt"
          "code-execution.rkt")
@@ -58,15 +58,6 @@
       
       (result))))
     
-(define (compile-cmd-x names)    
-  (system-call
-  (get-config 'COMPILE)
-  `(-t2 -V -etc -w -y -znd -znec 
-         -udo -zncc -init -xin -mobiles 
-         -zrpe -zcxdiv -zcxrem -zep -b -tle 
-         -DEF (= F.CPU 16000000) -DEF OCCBUILD.TVM
-         ,(hash-ref names 'occ))))
-
 ;; NEED TO PARAMETERIZE
 #|
  avr-occbuild --program fastblink.occ 
@@ -76,14 +67,14 @@
 --search /home/jupiter/git/kroc/tvm/arduino/occam/include/platforms/arduino
 |#
 
-(define (compile-cmd names)
-  (define board (get-config 'BOARD))
+(define (compile-cmd config names)
+  (define board (send (config) get-config 'BOARD))
   (system-call
-   (get-config 'OCCBUILD)
-   `(--search ,(get-config 'INCLUDE)
-              --search ,(build-path (get-config 'INCLUDE) "arch" "common")
-              --search ,(build-path (get-config 'INCLUDE) "arch" (hash-ref board 'mcpu))
-              --search ,(build-path (get-config 'INCLUDE) "platforms" (hash-ref board 'platform))
+   (send (config) get-config 'OCCBUILD)
+   `(--search ,(send (config) get-config 'INCLUDE)
+              --search ,(build-path (send (config) get-config 'INCLUDE) "arch" "common")
+              --search ,(build-path (send (config) get-config 'INCLUDE) "arch" (hash-ref board 'mcpu))
+              --search ,(build-path (send (config) get-config 'INCLUDE) "platforms" (hash-ref board 'platform))
               -D ,(format "F.CPU=~a" (hash-ref board 'F_CPU))
               ;; --program needs to come last
               --program ,(hash-ref names 'occ))))
@@ -92,12 +83,13 @@
   (parameterize ([current-directory (session-dir config id)])
     (file-exists? (hash-ref names ext))))
 
-(define (plink session-id names)
+(define (plink config session-id names)
   (define result 
     (make-parameter 
      (exe-in-session 
       session-id 
-      (plinker-cmd (hash-ref names 'tce)
+      (plinker-cmd config 
+                   (hash-ref names 'tce)
                    (hash-ref names 'tbc)))))
 
   (cond
@@ -105,23 +97,23 @@
     [else (error)]))
   
 
-(define (plinker-cmd tce tbc)
+(define (plinker-cmd config tce tbc)
   (system-call
-   (get-config 'LINKER)
+   (send (config) get-config 'LINKER)
    `(-s -o ,tbc
-        ,(->string (occam-lib-path 'forall))
+        ,(->string ((send (config) 'occam-lib-path) 'forall))
         ,tce)))
 
-(define (binhex session-id names)
+(define (binhex config session-id names)
   (define result
     (make-parameter
-     (exe-in-session session-id (binhex-cmd names))))
+     (exe-in-session session-id (binhex-cmd config names))))
   (cond
     [(zero? (result)) (get-response 'OK)]
     [else (error)]))
 
 ;;FIXME : Magic Number (bytecode location)
-(define (binhex-cmd names)
+(define (binhex-cmd config names)
   (system-call
    (get-config 'BINHEX)
    `(0x4F00 ,(hash-ref names 'tbc) 

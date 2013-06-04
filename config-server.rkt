@@ -13,8 +13,9 @@
     (define (bp cmd)
       (build-path (send this get-config 'BINPATH) cmd))
     
-    (define (occam-lib-path lib)
-      (build-path (send this get-config 'LIBPATH) (format "~a.lib" lib)))
+    (send this add-config 'occam-lib-path
+          (λ (lib)
+            (build-path (send this get-config 'LIBPATH) (format "~a.lib" lib))))
     
     (send this add-config 'HOST-TYPE 'aws)
     

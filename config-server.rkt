@@ -38,7 +38,7 @@
     (send this add-config 'COMPILE  (bp "avr-occ21"))
     (send this add-config 'OCCBUILD (bp "avr-occbuild"))
     (send this add-config 'LINKER   (bp "avr-plinker.pl"))
-    (send this add-configadd-config 'BINHEX   (bp "binary-to-ihex"))
+    (send this add-config 'BINHEX   (bp "binary-to-ihex"))
     
     ;; Server Config
     (send this add-config 'PORT 9000)

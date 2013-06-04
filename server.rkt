@@ -278,7 +278,7 @@
      [("--port") port
                  "Set the server port"
                  (P (string->number port))]
-     #:args () ;; No command-line args
+     #:args any ;; No command-line args
      
      (enable-debug! 'ALL)
      

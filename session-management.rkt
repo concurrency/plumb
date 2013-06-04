@@ -3,7 +3,8 @@
 (require db
          net/url)
 (require "path-handling.rkt"
-         "response-handling.rkt"
+         ;"response-handling.rkt"
+         
          "util.rkt"
          "debug.rkt"
          "seq.rkt"
@@ -11,45 +12,8 @@
 
 (provide (all-defined-out))
 
-(define start-session (void))
+(define start-session (error "DO NOT USE start-session from session-management!"))
 
-
-
-
-
-
-(define (old-start-session HOST PORT session-id)
-  
-  (define response 
-    (make-parameter (get-response 'ERROR)))
-  
-  (debug 'START-SESSION "DEFAULT ERROR: ~a" (response))
-  
-  (debug 'START-SESSION "SERVER URL: ~a" 
-         (url->string
-          (make-server-url (HOST) (PORT) "start-session")))
-  
-  (set/catch response error-response?
-    (get-response 'ERROR-NO-CONNECTION)
-    (get-pure-port (make-server-url (HOST) (PORT) "start-session")))
-  
-  (debug 'START-SESSION "PORT: ~a" (response))
-  
-  (set/catch response port?
-    (get-response 'ERROR-PROCESS-RESPONSE)
-    (process-response (response)))
-  
-  (debug 'START-SESSION "RESPONSE: ~a" (response))
-  
-  (set/catch response hash?
-    (get-response 'ERROR-BAD-RESPONSE)
-    (hash-ref (response) 'sessionid))
-  
-  (debug 'START-SESSION "SESSION ID: ~a" (response))
-  
-  (session-id (response))
-  
-  (response))
 
 (define (make-session-dir rs)
   (make-directory (session-dir rs)))
@@ -74,8 +38,8 @@
 
 (define (sql:init-db)
   (format "CREATE TABLE IF NOT EXISTS sessions (sessionid TEXT, created INT);"))
-(define (init-db)
-  (<c> (sqlite3-connect #:database (get-config 'SESSION-DB) #:mode 'create))
+(define (init-db config)
+  (<c> (sqlite3-connect #:database (send (config) get-config 'SESSION-DB) #:mode 'create))
   (qe (sql:init-db))
   )
 

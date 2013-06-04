@@ -237,7 +237,7 @@
 (define (init)
   (unless (directory-exists? (send (config) get-config 'TEMPDIR))
     (make-directory (send (config) get-config 'TEMPDIR)))
-  (init-db))
+  (init-db config))
 
 (define (serve)
   (init)

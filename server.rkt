@@ -66,7 +66,7 @@
     ;; The server should load this, so we can compile with it.
     (send (config) add-config 'BOARD (server-retrieve-board-config board))
     
-    (response (compile config session-id (compile-cmd names)))
+    (response (compile config session-id (compile-cmd config names)))
     
     ;; If things compiled, then we should link.
     (set/catch response success-response?

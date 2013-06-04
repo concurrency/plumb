@@ -25,12 +25,18 @@
       ;; When we are inside a .app bundle, set the contents path
       ;; one way. When we're running from the command line (which
       ;; is primarily a development activity), change things around.
+      (debug 'CONFIG "APP-ROOT is [~a]" (send this get-config 'APP-ROOT))
       (cond
+        ;; FIXME: THis should not be in two places (mac and win setup)
         ;; We're in an app bundle
-        [(regexp-match "app" (->string (send this get-config 'APP-ROOT)))
+        [(and (regexp-match ".app" (->string (send this get-config 'APP-ROOT)))
+              ;; but we're not running under DrRacket
+              (not (regexp-match "DrRacket.app" (->string (send this get-config 'APP-ROOT))))
+              )
+              
          (send this add-config 'CONTENTS (build-path
                                 (send this get-config 'APP-ROOT)
-                                "Contents"))]
+                                ))]
         [else
          (send this add-config 'APP-ROOT (current-directory))
          (send this add-config 'CONTENTS (send this get-config 'APP-ROOT))])
@@ -64,9 +70,14 @@
       ;; When we are inside a .app bundle, set the contents path
       ;; one way. When we're running from the command line (which
       ;; is primarily a development activity), change things around.
+      (debug 'CONFIG "APP-ROOT is [~a]" (send this get-config 'APP-ROOT))
       (cond
         ;; We're in an app bundle
-        [(regexp-match "app" (->string (send this get-config 'APP-ROOT)))
+        [(and (regexp-match "Plumb.app" (->string (send this get-config 'APP-ROOT)))
+              ;; but we're not running under DrRacket
+              ;(not (regexp-match "DrRacket.app" (->string (send this get-config 'APP-ROOT))))
+              )
+              
          (send this add-config 'CONTENTS (build-path
                                 (send this get-config 'APP-ROOT)
                                 ))]

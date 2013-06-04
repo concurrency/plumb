@@ -14,7 +14,7 @@
 
 (define win-examples%
   (class view%
-    (init-field model code-title code-url)
+    (init-field model main code-title code-url)
     (field [temp-file false])
    
     (define f (new frame% 
@@ -69,6 +69,7 @@
                                  (send b enable false)
                                  (create-temp-file (send text get-text))
                                  (update-model)
+                                 (send main set-remote-host)
                                  ;; Set the main file
                                  (debug 'EXAMPLES "Main file: ~a" temp-file)
                                  (send model set-main-file temp-file)
@@ -129,7 +130,7 @@
     
 (define menu-examples%
   (class view%
-    (init-field model menu)
+    (init-field model main menu)
     
     (define/override (update)
       'FIXME)
@@ -149,6 +150,7 @@
              [callback (λ (m e)
                          (new win-examples% 
                               [model model]
+                              [main main]
                               [code-title (first s)]
                               [code-url (third s)])
                          )]

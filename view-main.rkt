@@ -122,7 +122,7 @@
     ;   ;;       ;;  ;;;;;;;  ;;      ;;     ;;;;     ;;;;  
     
     
-    (define (set-remote-host)
+    (define/public (set-remote-host)
       (send model set-remote-host
             (send host get-value)
             (send port get-value)))
@@ -136,6 +136,7 @@
       (define example-submenus
         (new menu-examples%
              [model model]
+             [main this]
              [menu examples]))
       
       (define help (new menu%

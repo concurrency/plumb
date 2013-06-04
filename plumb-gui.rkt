@@ -29,7 +29,8 @@
 ;; Show the main view
 (send win-main show true)
 
+(send model load-config)
 (debug 'APP-LAUNCH "=== ~a ===" (date->string (seconds->date (current-seconds)) true))
 (debug 'APP-LAUNCH "current-directory [~a]" (current-directory))
 (debug 'APP-LAUNCH "find-system-path 'run-file [~a]" (find-system-path 'run-file))
-
+(debug 'APP-LAUNCH "CONTENTS [~a]" (send model get-config 'CONTENTS))

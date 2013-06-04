@@ -55,10 +55,42 @@
            
            [compilation-result false]
            [message "Parallel programming for makers."]
+           ;; For server-supplied menus?
+           [menus false]
            
            [first-compilation? true]
            )
     
+    ;; For debugging
+    (define/public (get-config key)
+      (send config get-config key))
+    
+    (define/public (load-config)
+      (set! config (new client-config%)))
+    
+    
+    (define/public (get-menus)
+      ;; Perhaps fetch from server?
+      
+      `(("Testing" (("Heartbeat" "Tests if things are working."
+                                 ;; Text link in Github
+                                 "https://raw.github.com/concurrency/plumb/master/t/slow.occ"
+                                 ;; Docu link?
+                                 )))
+        
+        ("Basics" (("Blink" "A variation on Heartbeat."
+                            ;; Text link in Github
+                            "https://raw.github.com/concurrency/plumb/master/t/fast.occ"
+                            ;; Docu link?
+                            )
+                   ("Multi Blink" "Blink two LEDs at the same time."
+                                  ;; RAW link in Github
+                                  "https://raw.github.com/concurrency/plumb/master/t/fastest.occ"
+                                  ;; Docu link?
+                                  )))))
+    
+    (define/public (get-board-choices)
+      (list "Arduino Duemilanove"))
     
     ;     ;;    ;;;;;;;    ;;      ;;    ;;     ;;;;     ;;      ;;    ;;   
     ;   ;;;;;   ;;;;;;;  ;;;;;   ;;;;;   ;;   ;;;;;;;;   ;;;     ;;  ;;;;;  
@@ -228,6 +260,9 @@
     ;   ;;      ;;  ;;;;;;; ;;       ;; ;;; 
     ;   ;;      ;;  ;;;;;;; ;;;;;;;   ;;;;  
     
+    (define/public (get-temp-dir)
+      temp-dir)
+    
     (define/public (set-main-file f)
       (set! main-file f)
       (update))
@@ -235,11 +270,12 @@
     (define/public (main-file-set?)
       (and main-file (file-exists? main-file)))
     
-    (define (create-temp-dir)
+    ;; Subdir is typically id
+    (define/public (create-temp-dir subdir)
       (set! temp-dir
             (case (->sym (system-type))
               [(macosx) 
-               (build-path (find-system-path 'temp-dir) id)]
+               (build-path (find-system-path 'temp-dir) subdir)]
               [(win windows)
                (let ([result (make-parameter false)])
                  (for ([p (map getenv '("TMP" "TEMP" "USERPROFILsE"))])
@@ -255,7 +291,8 @@
          (debug 'CREATE-TEMP-DIR "Temp dir [~a] exists" temp-dir)]
         [else 
          (debug 'CREATE-TEMP-DIR "Creating [~a]" temp-dir)
-         (make-directory temp-dir)]))
+         (make-directory temp-dir)])
+      temp-dir)
     
     (define (cleanup-temp-dir)
       (define extensions '(hex))
@@ -346,7 +383,7 @@
         ;; Create a temp directory
         [(any? 'ERROR-CREATE-TEMP-DIRECTORY)
          (debug (send p get-context) "Creating temporary directory")
-         (create-temp-dir)
+         (create-temp-dir id)
          temp-dir]
         
         ;; Remove old firmware
@@ -511,7 +548,7 @@
         
         [(hash? 'ERROR-CREATE-TEMP-DIRECTORY)
          (debug (send p get-context) "Creating temporary directory")
-         (create-temp-dir)
+         (create-temp-dir id)
          (CODE (build-path temp-dir "code.hex"))
          (CODE)]
         

@@ -5,19 +5,22 @@
 (require racket/gui
          mrlib/path-dialog
          )
-(require "mvc.rkt")
 
-;  ;;      ;; ;;  ;;;;;;; ;;     ;     ;;   ;;   
-;   ;;     ;  ;;  ;;;;;;;  ;    ;;;    ;  ;;;;;  
-;   ;;    ;;  ;;  ;;       ;;   ;;;   ;;  ;; ;   
-;    ;    ;;  ;;  ;;       ;;   ;;;   ;;  ;;     
-;    ;;   ;   ;;  ;;;;;;    ;  ;; ;;  ;   ;;;    
-;    ;;  ;;   ;;  ;;;;;;    ;; ;; ;; ;;     ;;;  
-;     ;; ;;   ;;  ;;        ;; ;; ;; ;;       ;; 
-;     ;; ;    ;;  ;;        ;;;;   ;;;        ;; 
-;      ;;;    ;;  ;;         ;;;   ;;;    ;   ;; 
-;      ;;;    ;;  ;;         ;;;   ;;;    ;; ;;; 
-;      ;;     ;;  ;;;;;;;    ;;     ;;     ;;;;  
+(require "mvc.rkt"
+         "view-examples.rkt")
+
+
+;   ;;       ;;     ;;     ;;  ;;      ;; 
+;   ;;;     ;;;     ;;     ;;  ;;;     ;; 
+;   ;;;;   ;;;;    ;;;;    ;;  ;;;;    ;; 
+;   ;; ;; ;; ;;    ;;;;    ;;  ;;;;;   ;; 
+;   ;; ;; ;; ;;    ;  ;;   ;;  ;; ;;   ;; 
+;   ;;  ;;;  ;;   ;;  ;;   ;;  ;;  ;;  ;; 
+;   ;;   ;   ;;   ;;   ;   ;;  ;;   ;; ;; 
+;   ;;       ;;  ;;;;;;;;  ;;  ;;   ;;;;; 
+;   ;;       ;;  ;;;;;;;;  ;;  ;;    ;;;; 
+;   ;;       ;;  ;;     ;; ;;  ;;     ;;; 
+;   ;;       ;; ;;      ;; ;;  ;;      ;; 
 
 (define win-main%
   (class view% 
@@ -55,7 +58,7 @@
     (define board (new choice% 
                        [parent f]
                        [label "Board Type"]
-                       [choices (list "Arduino Duemilanove")]))
+                       [choices (send model get-board-choices)]))
     
     (define hortz2 (new horizontal-panel%
                         [parent f]))
@@ -104,18 +107,58 @@
                           [auto-resize true]
                           (label "")))
     
+      
+    
+    ;   ;;       ;;  ;;;;;;;  ;;      ;;  ;;      ;;   ;;   
+    ;   ;;;     ;;;  ;;;;;;;  ;;;     ;;  ;;      ;; ;;;;;  
+    ;   ;;;;   ;;;;  ;;       ;;;;    ;;  ;;      ;; ;; ;   
+    ;   ;; ;; ;; ;;  ;;       ;;;;;   ;;  ;;      ;; ;;     
+    ;   ;; ;; ;; ;;  ;;;;;;   ;; ;;   ;;  ;;      ;; ;;;    
+    ;   ;;  ;;;  ;;  ;;;;;;   ;;  ;;  ;;  ;;      ;;   ;;;  
+    ;   ;;   ;   ;;  ;;       ;;   ;; ;;  ;;      ;;     ;; 
+    ;   ;;       ;;  ;;       ;;   ;;;;;  ;;      ;;     ;; 
+    ;   ;;       ;;  ;;       ;;    ;;;;   ;;    ;;  ;   ;; 
+    ;   ;;       ;;  ;;       ;;     ;;;   ;;;;;;;;  ;; ;;; 
+    ;   ;;       ;;  ;;;;;;;  ;;      ;;     ;;;;     ;;;;  
+    
+    
+    (define (set-remote-host)
+      (send model set-remote-host
+            (send host get-value)
+            (send port get-value)))
+    
+    (define (populate-menu-bar)
+      (define sm (send model get-menus))
+      ;(set! menu-bar (new menu-bar% [parent f]))
+      (define examples (new menu%
+                        [label "&Examples"]
+                        [parent menu-bar]))
+      (define example-submenus
+        (new menu-examples%
+             [model model]
+             [menu examples]))
+      
+      (define help (new menu%
+                        [label "&Help"]
+                        [parent menu-bar]))
+      
+      ;; In case we need it
+      (set-remote-host)
+      )
+    (define menu-bar (new menu-bar% [parent f]))
+    (populate-menu-bar)
+    
+    ;;;;;;;
+    
     (define (update-model)
       (send model set-arduino-port 
             (send serial-port get-string 
                   (send serial-port get-selection)))
       (send model set-board-type 
             (send board get-string 
-                  (send board get-selection))))
-            
-    (define (set-remote-host)
-      (send model set-remote-host
-            (send host get-value)
-            (send port get-value)))
+                  (send board get-selection)))
+      )
+    
     
     (define/public (show bool)
       (send f show bool))
@@ -133,10 +176,10 @@
       
       ;; Do we have any messages to display?
       (when (send model get-message)
-        (send messages set-label (send model get-message)))
+        (send messages set-label (send model get-message)))   
       )
-    
-    
+  
     
     (super-new)
     ))
+

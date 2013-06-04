@@ -28,11 +28,18 @@
       ;; This should give us the root of the Plumb.app
       (add-config 'APP-ROOT (find-system-path 'run-file))
       
-      ;; FIXME: Are we running the GUI or command-line version?
-      ;; For now, assume GUI.
-      (add-config 'CONTENTS (build-path
-                             (get-config 'APP-ROOT)
-                             "Contents"))
+      ;; When we are inside a .app bundle, set the contents path
+      ;; one way. When we're running from the command line (which
+      ;; is primarily a development activity), change things around.
+      (cond
+        ;; We're in an app bundle
+        [(regexp-match "app" (->string (get-config 'APP-ROOT)))
+         (add-config 'CONTENTS (build-path
+                                (get-config 'APP-ROOT)
+                                "Contents"))]
+        [else
+         (add-config 'APP-ROOT (current-directory))
+         (add-config 'CONTENTS (get-config 'APP-ROOT))])
       
       (add-config 'BINPATH (build-path 
                             (get-config 'CONTENTS)

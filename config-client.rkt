@@ -12,9 +12,10 @@
     
     (define (bp cmd)
       (build-path (send this get-config 'BINPATH) cmd))
- 
+    
     (define (occam-lib-path lib)
       (build-path (send this get-config 'LIBPATH) (format "~a.lib" lib)))
+    
     
     (define (load-macosx-client-config)
       
@@ -33,37 +34,38 @@
               ;; but we're not running under DrRacket
               (not (regexp-match "DrRacket.app" (->string (send this get-config 'APP-ROOT))))
               )
-              
+         
          (send this add-config 'CONTENTS (build-path
-                                (send this get-config 'APP-ROOT)
-                                ))]
+                                          (extract-filedir (send this get-config 'APP-ROOT))
+                                          'up
+                                          ))]
         [else
          (send this add-config 'APP-ROOT (current-directory))
          (send this add-config 'CONTENTS (send this get-config 'APP-ROOT))])
       
       (send this add-config 'BINPATH (build-path 
-                            (send this get-config 'CONTENTS)
-                            "client-config" 
-                            (->string (send this get-config 'HOST-TYPE))
-                            "bin"))
+                                      (send this get-config 'CONTENTS)
+                                      "client-config" 
+                                      (->string (send this get-config 'HOST-TYPE))
+                                      "bin"))
       (send this add-config 'CONFPATH (build-path 
-                             (send this get-config 'CONTENTS)
-                             "client-config" 
-                             (->string (send this get-config 'HOST-TYPE))
-                             "conf"))
- 
+                                       (send this get-config 'CONTENTS)
+                                       "client-config" 
+                                       (->string (send this get-config 'HOST-TYPE))
+                                       "conf"))
+      
       ;; This will have to change for Windows. Actually, for the GUI app in general.
       (send this add-config 'AVRDUDE.CONF (build-path (send this get-config 'CONFPATH)
-                                            "avrdude.conf"))
+                                                      "avrdude.conf"))
       (send this add-config 'AVRDUDE (build-path (send this get-config 'BINPATH)
-                                       "avrdude"))
+                                                 "avrdude"))
       
       (debug 'CONFIG "Mac Config: ~a~n" (send this get-data))
       )
     
     (define (load-windows-client-config)
       
-       (send this add-config 'HOST-TYPE (system-type))
+      (send this add-config 'HOST-TYPE (system-type))
       ;; This should give us the root of the Plumb.app
       (send this add-config 'APP-ROOT (find-system-path 'run-file))
       
@@ -77,28 +79,28 @@
               ;; but we're not running under DrRacket
               ;(not (regexp-match "DrRacket.app" (->string (send this get-config 'APP-ROOT))))
               )
-              
+         
          (send this add-config 'CONTENTS (build-path
-                                (send this get-config 'APP-ROOT)
-                                ))]
+                                          (send this get-config 'APP-ROOT)
+                                          ))]
         [else
          (send this add-config 'APP-ROOT (current-directory))
          (send this add-config 'CONTENTS (send this get-config 'APP-ROOT))])
-
+      
       
       (send this add-config 'BINPATH (build-path (send this get-config 'CONTENTS) 
-                                       "client-config"
-                                       "windows"
-                                       "bin"))
+                                                 "client-config"
+                                                 "windows"
+                                                 "bin"))
       (send this add-config 'CONFPATH (build-path (send this get-config 'CONTENTS) 
-                                       "client-config"
-                                       "windows"
-                                       "conf"))
+                                                  "client-config"
+                                                  "windows"
+                                                  "conf"))
       
       (send this add-config 'AVRDUDE.CONF (build-path (send this get-config 'CONFPATH)
-                                            "avrdude.conf"))
+                                                      "avrdude.conf"))
       (send this add-config 'AVRDUDE (build-path (send this get-config 'BINPATH)
-                                       "avrdude.exe"))
+                                                 "avrdude.exe"))
       
       (debug 'CONFIG "Windows Config: ~a~n" (send this get-data))
       )

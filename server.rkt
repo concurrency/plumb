@@ -281,8 +281,11 @@
      #:args () ;; No command-line args
      (when (not (config))
        (config (new server-config%)))
+     (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
      (when (not (P))
+       (debug 'SERVER "Setting port to ~a" (P))
        (send (config) add-config 'PORT (P)))
+     (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
      (enable-debug! 'ALL)
      (serve)
      )))

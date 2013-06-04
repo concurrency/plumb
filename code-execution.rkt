@@ -15,7 +15,7 @@
 
 ;; Server side... FIXME
 (define (exe-in-session config id cmd)
-  (parameterize ([current-directory (send config get-config 'SESSION-DIR)])
+  (parameterize ([current-directory (send (config) get-config 'SESSION-DIR)])
     (system/exit-code cmd)))
 
 (define (system-call prog flags)

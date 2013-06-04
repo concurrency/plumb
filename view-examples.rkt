@@ -5,6 +5,7 @@
 
 (require racket/gui
          browser/external
+         browser
          net/url)
 
 (require "mvc.rkt"
@@ -18,8 +19,8 @@
    
     (define f (new frame% 
                    [label code-title]
-                   [width 600]
-                   [height 800]))
+                   [width 500]
+                   [height 400]))
                                   
     (define editor-canvas (new editor-canvas%
                                [parent f]
@@ -27,26 +28,40 @@
                                [stretchable-height true]))
     (define text (new text%))
     
+    (define v1 (new vertical-panel%
+                    [parent f]
+                    [stretchable-height false]))
+    
     (define hortz (new horizontal-panel% 
-                       [parent f]
+                       [parent v1]
                        [stretchable-height false]))
     
     (define serial-port (new choice%
                              [parent hortz]
-                             [label "Arduino Port"]
+                             [label "Port"]
                              [choices 
                               (send model get-arduino-ports)]))
     
     (define board (new choice% 
                        [parent hortz]
-                       [label "Board Type"]
+                       [label "Board"]
                        [choices (send model get-board-choices)]
                        [stretchable-width true]
                        ))
     
+    (define h2 (new horizontal-panel%
+                    [parent v1]
+                    [stretchable-height false]))
     
+    (define open-docs (new button%
+                           [parent h2]
+                           [label "Open Docs for This Example."]
+                           [stretchable-width true]
+                           [callback (λ (b e)
+                                       (open-docs))]))
+                            
     (define run (new button%
-                     [parent f]
+                     [parent h2]
                      [label "Run This Example"]
                      [stretchable-width true]
                      [enabled true]

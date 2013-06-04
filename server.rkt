@@ -279,6 +279,9 @@
                  "Set the server port"
                  (P (string->number port))]
      #:args () ;; No command-line args
+     
+     (enable-debug! 'ALL)
+     
      (when (not (config))
        (config (new server-config%)))
      (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
@@ -286,6 +289,6 @@
        (debug 'SERVER "Setting port to ~a" (P))
        (send (config) add-config 'PORT (P)))
      (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
-     (enable-debug! 'ALL)
+     
      (serve)
      )))

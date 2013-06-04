@@ -57,7 +57,7 @@
   ;; Passing back to the webserver
   (encode-response (resp)))
 
-(define (compile-session req session-id board main-file)
+(define (compile-session req config session-id board main-file)
   (parameterize ([current-directory (session-dir config session-id)])
     ;; Assume a successful build.
     (define response (make-parameter (get-response 'OK-BUILD)))

@@ -256,39 +256,38 @@
                    )))
 
 
+(define P (make-parameter false))
 (define server 
-  (let ()
-    (define P (make-parameter false))
-    (command-line
-     #:program "server"
-     #:multi
-     [("-d" "--debug") flag
-                       "Enable debug flag."
-                       (enable-debug! (->sym flag))]
-     
-     #:once-each 
-     [("--config") name
-                   "Choose platform config."
-                   (config (new server-config%))
-                   ;; For time being
-                   (enable-debug! 'ALL)
-                   ]
-     
-     ;; Must come after --config on command line
-     [("--port") port
-                 "Set the server port"
-                 (P (string->number port))]
-     #:args any ;; No command-line args
-     
-     (enable-debug! 'ALL)
-     
-     (when (not (config))
-       (config (new server-config%)))
-     (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
-     (when (not (P))
-       (debug 'SERVER "Setting port to ~a" (P))
-       (send (config) add-config 'PORT (P)))
-     (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
-     
-     (serve)
-     )))
+  (command-line
+   #:program "server"
+   #:multi
+   [("-d" "--debug") flag
+                     "Enable debug flag."
+                     (enable-debug! (->sym flag))]
+   
+   #:once-each 
+   [("--config") name
+                 "Choose platform config."
+                 (config (new server-config%))
+                 ;; For time being
+                 (enable-debug! 'ALL)
+                 ]
+   
+   ;; Must come after --config on command line
+   [("--port") port
+               "Set the server port"
+               (P (string->number port))]
+   #:args () ;; No command-line args
+   
+   (enable-debug! 'ALL)
+   
+   (when (not (config))
+     (config (new server-config%)))
+   (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
+   (when (not (P))
+     (debug 'SERVER "Setting port to ~a" (P))
+     (send (config) add-config 'PORT (P)))
+   (debug 'SERVER "PORT: ~a" (send (config) get-config 'PORT))
+   
+   (serve)
+   ))

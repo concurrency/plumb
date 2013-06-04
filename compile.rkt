@@ -87,6 +87,7 @@
   (define result 
     (make-parameter 
      (exe-in-session 
+      config
       session-id 
       (plinker-cmd config 
                    (hash-ref names 'tce)
@@ -107,7 +108,7 @@
 (define (binhex config session-id names)
   (define result
     (make-parameter
-     (exe-in-session session-id (binhex-cmd config names))))
+     (exe-in-session config session-id (binhex-cmd config names))))
   (cond
     [(zero? (result)) (get-response 'OK)]
     [else (error)]))

@@ -7,12 +7,14 @@
          )
 
 (require "compile.rkt"
-         "path-handling.rkt"
+         "config-server.rkt"
+         ;;"path-handling.rkt"
          "util.rkt"
          "response-handling.rkt"
          "session-management.rkt"
          "debug.rkt")
 
+(define config (make-parameter false))
 
 (define (generate-names main-file)
   (define names (make-hash))
@@ -140,8 +142,8 @@
   ;; Build a path to the config
   (set/catch response boolean?
     (get-response 'ERROR)
-    (build-path (get-config 'CONFIG-BOARDS)
-                           (format "~a.conf" (extract-filename kind))))
+    (build-path (send (config) get-config 'CONFIG-BOARDS)
+                (format "~a.conf" (extract-filename kind))))
   
   (debug 'BOARD-CONFIG "~a" (response))
   
@@ -149,7 +151,7 @@
   (set/catch response path?
     (get-response 'ERROR-READ-CONFIG)
     (open-input-file (response)))
-    
+  
   (debug 'BOARD-CONFIG "~a" (response))
   
   ;; Read it; it should be a hash table.
@@ -167,8 +169,8 @@
   ;; Build a path to the config
   (set/catch response boolean?
     (get-response 'ERROR)
-    (build-path (get-config 'CONFIG-BOARDS)
-                           (format "~a.conf" (extract-filename kind))))
+    (build-path (send (config) 'CONFIG-BOARDS)
+                (format "~a.conf" (extract-filename kind))))
   
   (debug 'BOARD-CONFIG "~a" (response))
   
@@ -176,7 +178,7 @@
   (set/catch response path?
     (get-response 'ERROR-READ-CONFIG)
     (open-input-file (response)))
-    
+  
   (debug 'BOARD-CONFIG "~a" (response))
   
   ;; Read it; it should be a hash table.
@@ -193,12 +195,12 @@
   )
 
 (define (retrieve-firmware req firm)
-    (define response (make-parameter true))
+  (define response (make-parameter true))
   
   ;; Build a path to the firmware
   (set/catch response boolean?
     (get-response 'ERROR)
-    (build-path (get-config 'FIRMWARES) (extract-filename firm)))
+    (build-path (send (config) 'FIRMWARES) (extract-filename firm)))
   
   (debug 'FIRMWARE "~a" (response))
   
@@ -206,7 +208,7 @@
   (set/catch response path?
     (get-response 'ERROR)
     (open-input-file (response)))
-    
+  
   (debug 'FIRMWARE "~a" (response))
   
   ;; Read it all; just a .hex file, so it is plain text.
@@ -220,7 +222,7 @@
   (encode-response 
    (get-response 'OK #:extra (response)))
   )
-    
+
 
 (define-values (dispatch blog-url)
   (dispatch-rules
@@ -233,18 +235,18 @@
    ))
 
 (define (init)
-  (unless (directory-exists? (get-config 'TEMPDIR))
-    (make-directory (get-config 'TEMPDIR)))
+  (unless (directory-exists? (send (config) 'TEMPDIR))
+    (make-directory (send (config) 'TEMPDIR)))
   (init-db))
-   
+
 (define (serve)
   (init)
   (with-handlers ([exn:fail? 
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch
                    #:launch-browser? false
-                   #:port (get-config 'PORT)
-                   #:listen-ip (get-config 'LISTEN-IP) ;"192.168.254.201" ; remote.org
+                   #:port (send (config) 'PORT)
+                   #:listen-ip (send (config) 'LISTEN-IP) ;"192.168.254.201" ; remote.org
                    #:server-root-path (current-directory)
                    #:extra-files-paths 
                    (list 
@@ -255,6 +257,7 @@
 
 
 (define server 
+  (define P (make-parameter false))
   (command-line
    #:program "server"
    #:multi
@@ -264,10 +267,21 @@
    
    #:once-each 
    [("--config") name
-                "Choose platform config."
-                (load-config name)
-                ;; For time being
-                (enable-debug! 'ALL)
-                (serve)]
+                 "Choose platform config."
+                 (config (new server-config%))
+                 ;; For time being
+                 (enable-debug! 'ALL)
+                 ]
    
+   ;; Must come after --config on command line
+   [("--port") port
+               "Set the server port"
+               (P (string->number port))]
+   
+   (when (not (config))
+     (config (new server-config%)))
+   (when (not (P))
+     (add-config 'PORT (P)))
+   (enable-debug! 'ALL)
+   (serve)
    ))

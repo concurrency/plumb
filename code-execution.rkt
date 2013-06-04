@@ -4,7 +4,8 @@
          exe-in-tempdir
          exe-in-session
          )
-(require "util.rkt")
+(require "util.rkt"
+         "session-management.rkt")
 
 ;; CODE EXECUTION
 ;;;;;;;;;;;;;;;;;;

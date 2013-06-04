@@ -2,19 +2,23 @@
 
 echo Setting Up Variables
 
-SRC=~/My\ Documents/GitHub/flow
-BUILD=$SRC/build
-DDNAME=Flow
-DEST=$SRC/build/$DDNAME
+SRC=../
+BUILD=$SRC/build-win
+DDNAME=Plumb
+DEST=$SRC/$BUILD/$DDNAME
 RACO=/c/Program\ Files/Racket/raco.exe
 ZIP=/c/Program\ Files/7-Zip/7z.exe
 PSCP=~/My\ Documents/GitHub/pscp.exe
 
-echo Remove the Destination If It Exists
+pushd "$SRC"
+  rm -rf "$BUILD"
+popd
+
+pushd "$SRC"
+  mkdir "$BUILD"
+popd
+
 pushd "$BUILD"
-  rm -rf "$DDNAME"
-  echo   Remove The Zipfile Too
-  rm -rf "$DDNAME.zip"
  
   echo   Making Destination Directories
   mkdir "$DEST"
@@ -32,15 +36,12 @@ pushd "$BUILD"
 popd
 
 echo Copy Needed Directories
-cp -R "$SRC/bin" "$DEST/bin"
-cp -R "$SRC/interface" "$DEST/interface"
-cp -R "$SRC/occam" "$DEST/occam"
-cp -R "$SRC/config" "$DEST/config"
+cp -R "$SRC/client-config" "$DEST/client-config"
 
 echo Zip Everything
 "$ZIP" a -r "$DDNAME.zip" "$DDNAME"
 
-echo SCP Everything
-"$PSCP" "$DDNAME.zip" jadudm@transterpreter.org:/srv/www/org/transterpreter.download/files/flow/
+# echo SCP Everything
+# "$PSCP" "$DDNAME.zip" jadudm@transterpreter.org:/srv/www/org/transterpreter.download/files/flow/
 
 echo End Of Script

@@ -58,7 +58,7 @@
            ;; For server-supplied menus?
            [menus false]
            
-           [first-compilation? true]
+           [first-compilation? false]
            )
     
     ;; For debugging
@@ -272,6 +272,8 @@
     
     ;; Subdir is typically id
     (define/public (create-temp-dir subdir)
+      (debug 'CREATE-TEMP-DIR 
+             "Creating subdir [~a]" subdir)
       (set! temp-dir
             (case (->sym (system-type))
               [(macosx) 
@@ -279,11 +281,14 @@
               [(win windows)
                (let ([result (make-parameter false)])
                  (for ([p (map getenv '("TMP" "TEMP" "USERPROFILsE"))])
-                   (debug 'CREATE-TEMP-DIR "Exists? [~a]" p)
+                   (debug 'CREATE-TEMP-DIR "Checking for [~a]" p)
                    (when (and p
                               (directory-exists? p)
                               (not (result)))
-                     (result (build-path p id))))
+                     (debug 'CREATE-TEMP-DIR
+                            "Combining [~a] and [~a]" 
+                            p id)
+                     (result (build-path p subdir))))
                  (debug 'CREATE-TEMP-DIR "Using [~a]" (result))
                  (result))]))
       (cond

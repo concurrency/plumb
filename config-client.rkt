@@ -63,29 +63,36 @@
     
     (define (load-windows-client-config)
       
-      (add-config 'HOST-TYPE 'windows)
+       (add-config 'HOST-TYPE (system-type))
+      ;; This should give us the root of the Plumb.app
+      (add-config 'APP-ROOT (find-system-path 'run-file))
       
-      (add-config 'BINPATH (build-path (current-directory) "bin" "windows"))
+      ;; When we are inside a .app bundle, set the contents path
+      ;; one way. When we're running from the command line (which
+      ;; is primarily a development activity), change things around.
+      (cond
+        ;; We're in an app bundle
+        [(regexp-match "app" (->string (get-config 'APP-ROOT)))
+         (add-config 'CONTENTS (build-path
+                                (get-config 'APP-ROOT)
+                                ))]
+        [else
+         (add-config 'APP-ROOT (current-directory))
+         (add-config 'CONTENTS (get-config 'APP-ROOT))])
+
       
-      ;; Server Configs
-      (add-config 'CONFIG   (build-path (current-directory) "server-config"))
-      (add-config 'CONFIG-BOARDS (build-path (get-config 'CONFIG) "boards"))
-      (add-config 'FIRMWARES (build-path (current-directory) "server-config" "firmwares"))
-      
-      (add-config 'COMPILE  (bp "occ21"))
-      (add-config 'LINKER   (bp "plinker.pl"))
-      (add-config 'BINHEX   (bp "binary-to-ihex"))
-      
-      ;; This will have to change for Windows. Actually, for the GUI app in general.
-      (add-config 'AVRDUDE.CONF (build-path (current-directory)
-                                            "client-config" 
-                                            (->string (get-config 'HOST-TYPE))
-                                            "conf"
-                                            "avrdude.conf"))
-      (add-config 'AVRDUDE (build-path (current-directory)
+      (add-config 'BINPATH (build-path (get-config 'CONTENTS) 
                                        "client-config"
-                                       (->string (get-config 'HOST-TYPE))
-                                       "bin"
+                                       "windows"
+                                       "bin"))
+      (add-config 'CONFPATH (build-path (get-config 'CONTENTS) 
+                                       "client-config"
+                                       "windows"
+                                       "conf"))
+      
+      (add-config 'AVRDUDE.CONF (build-path (get-config 'CONFPATH)
+                                            "avrdude.conf"))
+      (add-config 'AVRDUDE (build-path (get-config 'BINPATH)
                                        "avrdude.exe"))
       
       (debug 'CONFIG "Windows Config: ~a~n" data)

@@ -9,13 +9,13 @@
          net/url)
 
 (require "mvc.rkt"
-         "util.rkt")
+         "util.rkt"
+         "debug.rkt")
 
 (define win-examples%
   (class view%
     (init-field model code-title code-url)
-    (field [content false]
-           [temp-file false])
+    (field [temp-file false])
    
     (define f (new frame% 
                    [label code-title]
@@ -66,45 +66,46 @@
                      [stretchable-width true]
                      [enabled true]
                      [callback (λ (b e)
+                                 (send b enable false)
+                                 (create-temp-file (send text get-text))
                                  (update-model)
                                  ;; Set the main file
+                                 (debug 'EXAMPLES "Main file: ~a" temp-file)
                                  (send model set-main-file temp-file)
                                  ;; Compile
                                  (send model compile)
                                  ;; Remove evidence.
                                  (delete-file temp-file)
                                  (delete-directory (extract-filedir temp-file))
+                                 (send b enable true)
                                  )]
                      ))
     
     
-    (define/public (load-example)
-      (set! content 
-            (read-all
-             (get-pure-port 
-              (string->url code-url))))
-      
-      ;; Load the text in
-      (send text erase)
-      (send text insert content)
-      
-      ;; Create temp file now.
-      
-      (let* ([d (send model 
-                      create-temp-dir 
-                      (format "example-~a" (random-string 32)))]
-             [file (build-path
-                    d
-                    "example.occ")]) 
+    (define (create-temp-file content)
+      (let* ([example  (format "example-~a" (random-string 32))]
+             [d (send model create-temp-dir example)]
+             [example-file (build-path d "example.occ")]) 
+        (debug 'EXAMPLES "Full path: ~a" example-file)
         (when (not (directory-exists? d))
           (make-directory d))
+        (debug 'EXAMPLES "TEMP FILE: ~a" example-file)
         (parameterize ([current-directory d])
-          (set! temp-file file)
+          (set! temp-file example-file)
           (with-output-to-file temp-file
             #:exists 'replace
             (thunk
-             (printf "~a" content)))))
-      )
+             (printf "~a" content))))))
+    
+    (define/public (load-example)
+      (define content 
+        (read-all
+         (get-pure-port 
+          (string->url code-url))))
+      
+      ;; Load the text in
+      (send text erase)
+      (send text insert content))
     
     (define/override (update)
       'FIXME)

@@ -24,24 +24,31 @@
     
     (define (load-macosx-client-config)
       
-      (add-config 'HOST-TYPE 'macosx)
+      (add-config 'HOST-TYPE (system-type))
+      ;; This should give us the root of the Plumb.app
+      (add-config 'APP-ROOT (find-system-path 'run-file))
       
-      (add-config 'BINPATH (build-path (current-directory) "bin" "macosx"))
+      ;; FIXME: Are we running the GUI or command-line version?
+      ;; For now, assume GUI.
+      (add-config 'CONTENTS (build-path
+                             (get-config 'APP-ROOT)
+                             "Contents"))
       
-      (add-config 'COMPILE  (bp "occ21"))
-      (add-config 'LINKER   (bp "plinker.pl"))
-      (add-config 'BINHEX   (bp "binary-to-ihex"))
-      
+      (add-config 'BINPATH (build-path 
+                            (get-config 'CONTENTS)
+                            "client-config" 
+                            (->string (get-config 'HOST-TYPE))
+                            "bin"))
+      (add-config 'CONFPATH (build-path 
+                             (get-config 'CONTENTS)
+                             "client-config" 
+                             (->string (get-config 'HOST-TYPE))
+                             "conf"))
+ 
       ;; This will have to change for Windows. Actually, for the GUI app in general.
-      (add-config 'AVRDUDE.CONF (build-path (current-directory)
-                                            "client-config" 
-                                            (->string (get-config 'HOST-TYPE))
-                                            "conf"
+      (add-config 'AVRDUDE.CONF (build-path (get-config 'CONFPATH)
                                             "avrdude.conf"))
-      (add-config 'AVRDUDE (build-path (current-directory)
-                                       "client-config"
-                                       (->string (get-config 'HOST-TYPE))
-                                       "bin"
+      (add-config 'AVRDUDE (build-path (get-config 'BINPATH)
                                        "avrdude"))
       
       (debug 'CONFIG "Mac Config: ~a~n" data)

@@ -1,6 +1,7 @@
 #lang racket
 
-(require racket/gui)
+(require racket/gui
+          racket/date)
 
 (require "debug.rkt"
          "app-type.rkt"
@@ -27,3 +28,8 @@
 
 ;; Show the main view
 (send win-main show true)
+
+(debug 'APP-LAUNCH "=== ~a ===" (date->string (seconds->date (current-seconds)) true))
+(debug 'APP-LAUNCH "current-directory [~a]" (current-directory))
+(debug 'APP-LAUNCH "find-system-path 'run-file [~a]" (find-system-path 'run-file))
+

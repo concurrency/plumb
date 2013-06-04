@@ -19,4 +19,6 @@ npm-debug.log
 
 compiled/
 htdocs/
+build-mac/
+build-win/
 *~

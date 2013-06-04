@@ -101,7 +101,7 @@
   (system-call
    (send (config) get-config 'LINKER)
    `(-s -o ,tbc
-        ,(->string ((send (config) 'occam-lib-path) 'forall))
+        ,(->string ((send (config) get-config 'occam-lib-path) 'forall))
         ,tce)))
 
 (define (binhex config session-id names)
@@ -115,6 +115,6 @@
 ;;FIXME : Magic Number (bytecode location)
 (define (binhex-cmd config names)
   (system-call
-   (get-config 'BINHEX)
+   (send config get-config 'BINHEX)
    `(0x4F00 ,(hash-ref names 'tbc) 
             ,(hash-ref names 'hex))))

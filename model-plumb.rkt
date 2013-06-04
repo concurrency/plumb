@@ -58,7 +58,7 @@
            ;; For server-supplied menus?
            [menus false]
            
-           [first-compilation? false]
+           [first-compilation? true]
            )
     
     ;; For debugging

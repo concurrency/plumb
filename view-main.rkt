@@ -73,7 +73,8 @@
                                                        [message "Choose your main .occ file."]
                                                        [parent f]
                                                        [existing? true]
-                                                       [directory (getenv "HOME")]
+                                                       [directory (or (getenv "HOME")
+                                                                      (getenv "USERPROFILE"))]
                                                        [filters (list (list "occam files" "*.occ"))]
                                                        [dir? false])])
                                            (send model set-main-file (send d run))

@@ -117,6 +117,6 @@
 (define (binhex-cmd config names)
   (system-call
    (send (config) get-config 'BINHEX)
-   `(,(hash-ref (send (config) get-config 'BOARD) 'start-address) 
+   `(,(number->string (hash-ref (send (config) get-config 'BOARD) 'start-address) 16)
      ,(hash-ref names 'tbc) 
      ,(hash-ref names 'hex))))

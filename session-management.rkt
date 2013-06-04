@@ -63,14 +63,14 @@
 (define MINUTE 60)
 (define session-timeout (make-parameter DAY))
 
-(define (cleanup-old-sessions)
+(define (cleanup-old-sessions config)
   (define now (current-seconds))
   (for ([s (all-sessions)])
     ;; Get rid of sessions more than 24 hours old
     ;;(printf "~a~n" (- now (vector-ref s 1)))
     (when (> (- now (vector-ref s 1)) (session-timeout))
       ;;(printf "DELETING ~a~n" (vector-ref s 0))
-      (cleanup-session (vector-ref s 0))
+      (cleanup-session config (vector-ref s 0))
       )))
 
 ;; This should be an order-maintained list, not a hash

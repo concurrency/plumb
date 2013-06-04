@@ -85,11 +85,11 @@
        `((hex . ,(file->string (hash-ref names 'hex))))))
     
     ;; Destroy everything!
-    (cleanup-session session-id)
+    (cleanup-session config session-id)
     
     ;; Cleanup old sessions, too.
     ;; (It would be nice if this was automated.)
-    (cleanup-old-sessions)
+    (cleanup-old-sessions config)
     
     ;; Return the b64 encoded JSON file
     (response)

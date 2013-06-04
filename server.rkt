@@ -278,7 +278,7 @@
      [("--port") port
                  "Set the server port"
                  (P (string->number port))]
-     #:args 
+     #:args () ;; No command-line args
      (when (not (config))
        (config (new server-config%)))
      (when (not (P))

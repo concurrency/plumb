@@ -35,6 +35,7 @@
     (define hortz1 (new horizontal-panel%
                         [parent f]))
     
+    #|
     (define host (new text-field% 
                       [parent hortz1]
                       [label "Server"]
@@ -48,6 +49,7 @@
                       [init-value "9000"]
                       [stretchable-width false]
                       ))
+    |#
     
     (define serial-port (new choice%
                              [parent f]
@@ -124,10 +126,16 @@
     ;   ;;       ;;  ;;;;;;;  ;;      ;;     ;;;;     ;;;;  
     
     
+    ;; FIXME
+    ;; No longer needed?
     (define/public (set-remote-host)
+      'DoNothing
+      #|
       (send model set-remote-host
             (send host get-value)
-            (send port get-value)))
+            (send port get-value))
+      |#
+     )
     
     (define (populate-menu-bar)
       (define sm (send model get-menus))
@@ -145,21 +153,29 @@
                         [label "&Help"]
                         [parent menu-bar]))
       
+      ;; FIXME 
+      ;; Probably handled at app startup now.
       ;; In case we need it
-      (set-remote-host)
+      ;; (set-remote-host)
+      'JustDefine?
       )
+    
     (define menu-bar (new menu-bar% [parent f]))
     (populate-menu-bar)
     
     ;;;;;;;
     
     (define (update-model)
+      'DoNothing 
+      #|
+      ;; FIXME This can become a menu option.
       (send model set-arduino-port 
             (send serial-port get-string 
                   (send serial-port get-selection)))
       (send model set-board-type 
             (send board get-string 
                   (send board get-selection)))
+      |#
       )
     
     

@@ -224,6 +224,7 @@
         [(hash? 'ERROR-STORING-BOARD-CONFIG)
          (debug (send gbc get-context) "~a" (filter-hash (send gbc get) 'hex))
          (set! board-config (send gbc get))
+         (debug (send gbc get-context) "BOARD CONFIG: ~a" board-config)
          NO-CHANGE])
       
       (seq firm

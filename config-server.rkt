@@ -32,9 +32,11 @@
     (send this add-config 'SESSION-DB (build-path (send this get-config 'TEMPDIR) "jupiter.sqlite"))
     
     ;; Server Configs
-    (send this add-config 'CONFIG   (build-path (current-directory) "server-config"))
+    (send this add-config 'CONFIG   (build-path (getenv "HOME") 
+                                                "git" "plumb-live" 
+                                                "server-config"))
     (send this add-config 'CONFIG-BOARDS (build-path (send this get-config 'CONFIG) "boards"))
-    (send this add-config 'FIRMWARES (build-path (current-directory) "server-config" "firmwares"))
+    (send this add-config 'FIRMWARES (build-path (send this get-config 'CONFIG) "firmwares"))
     
     (send this add-config 'COMPILE  (bp "avr-occ21"))
     (send this add-config 'OCCBUILD (bp "avr-occbuild"))

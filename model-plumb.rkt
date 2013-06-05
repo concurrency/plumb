@@ -213,7 +213,10 @@
       (seq gbc
         ;; Create the URL
         [(initial? 'ERROR-GENERATING-URL)
-         (make-server-url host port "board" board-type)]
+         (let ()
+           (define url (make-server-url host port "board" board-type))
+           (debug (send gbc get-context) "URL: ~a" url)
+           url)]
         ;; Get a port
         [(url? 'ERROR-CREATING-PORT)
          (get-pure-port (send gbc get))]
@@ -244,7 +247,10 @@
              [(< firm-leng MIN-FIRMWARE-SIZE)
               (raise)]
              [else
-              (debug (send firm get-context) "Firmware length: ~a" firm-leng)])
+              (debug (send firm get-context) "Firmware length: ~a" firm-leng)
+              ;; Add this to the board config?
+              (hash-set! board-config 'hex (hash-ref (send firm get) 'hex))
+              ])
            NO-CHANGE)])
       )
     

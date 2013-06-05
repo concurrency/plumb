@@ -202,7 +202,7 @@
     (get-response 'ERROR)
     (build-path (send (config) get-config 'FIRMWARES) (extract-filename firm)))
   
-  (debug 'FIRMWARE "~a" (response))
+  (debug 'FIRMWARE "FIRMWARE PATH: ~a" (response))
   
   ;; Open the file
   (set/catch response path?

@@ -1,2 +1,2 @@
-#hash((server . "ec2-54-226-131-120.compute-1.amazonaws.com")
+#hash((host . "ec2-54-226-131-120.compute-1.amazonaws.com")
       (port . 9000))

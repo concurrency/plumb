@@ -106,7 +106,8 @@
 
 (define (filter-hash hash key)
   (let ([c (hash-copy hash)])
-    (if (string? (hash-ref c key))
+    (if (and (hash-has-key? c key)
+             (string? (hash-ref c key)))
         (hash-set! c key (string-length (hash-ref c key)))
         (hash-set! c 'FILTERED))
     c))

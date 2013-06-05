@@ -109,5 +109,5 @@
     (if (and (hash-has-key? c key)
              (string? (hash-ref c key)))
         (hash-set! c key (string-length (hash-ref c key)))
-        (hash-set! c 'FILTERED))
+        (hash-set! c key 'KEYNOTFOUND))
     c))

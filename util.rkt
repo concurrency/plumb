@@ -7,6 +7,8 @@
          net/url
          net/base64)
 
+(require "debug.rkt")
+
 (define (->sym v)
   (string->symbol (format "~a" v)))
 
@@ -32,8 +34,9 @@
           (base64-decode (string->bytes/locale str))))
 
 (define (read-url str)
-  (read-all (get-impure-port (string->url str)))
-  (read-all (get-pure-port (string->url str))))
+  (read-all (get-pure-port 
+             (string->url str)
+             (list "User-Agent: PLT Racket/5.3.3 (Plumb)"))))
 
 (define (strip str)
   (for ([pat '("^[ ]+" "[ ]+$" "\n" "\r")])
@@ -42,11 +45,17 @@
 
 (define (process-config str)
   (define h (make-hash))
-  (for ([line (regexp-split str "\n")])
-    (let ([halves (map strip (regexp-split ":" line))])
-      (hash-set! h
-                 (->sym (first halves))
-                 (second halves))))
+  (debug 'PC "lines: ~a" (regexp-split "\n" str))
+  
+  (for ([line (regexp-split "\n" str)])
+    (debug 'PC "line: ~a" line)
+    (when (and (not (regexp-match "^#" line))
+               (regexp-match "(.*?):(.*?)" line))
+      (let ([halves (map strip (regexp-split ":" line))])
+        (debug 'PC "halves: ~a" halves)
+        (hash-set! h
+                   (->sym (first halves))
+                   (second halves)))))
   h)
 
 (define (symbol<? a b)

@@ -15,13 +15,13 @@
 
 (define win-examples%
   (class view%
-    (init-field model main code-title code-url)
+    (init-field model main conf)
     (field [temp-file false])
     
     (define f (new frame% 
-                   [label code-title]
-                   [width 500]
-                   [height 400]))
+                   [label (hash-ref conf 'tweet)]
+                   [width 600]
+                   [height 500]))
     
     (define editor-canvas (new editor-canvas%
                                [parent f]
@@ -100,16 +100,38 @@
             (thunk
              (printf "~a" content))))))
     
-    (define/public (load-example)
-      (define content 
-        (read-all
-         (get-pure-port 
-          (string->url code-url))))
+    (define (replace-tags-in-code conf)
+      (define gh (new github% 
+                      [owner OWNER]
+                      [repos "plumbing-examples"]))
       
+      (let ([code (send gh get-content (hash-ref conf 'path))]
+            [result '()])
+        
+        ;; Append a standard header
+        (when (and (hash-has-key? conf 'name)
+                   (hash-has-key? conf 'tweet)
+                   (hash-has-key? conf 'author)
+                   (hash-has-key? conf 'email))
+          (set! code 
+                (string-append
+                 "-- {{name}}\n-- {{tweet}}\n-- {{author}} ({{email}})\n\n"
+                 code)))
+        
+        (for ([line (regexp-split "\n" code)])
+          (for ([key (hash-keys conf)])
+            (set! line (regexp-replace* (format "{{~a}}" key)
+                                        line
+                                        (hash-ref conf key))))
+          (set! result (snoc result (format "~a~n" line))))
+        (apply string-append result)))
+            
+    (define/public (load-example)
+      (debug 'LOAD-EXAMPLE "Loading from conf:~n~a" conf)
+      (define content (replace-tags-in-code conf))
       ;; Load the text in
       (send text erase)
       (send text insert content)
-      
       ;; Apply styling
       (apply-formatting)
       )
@@ -176,18 +198,49 @@
     (super-new)
     ))
 
+(require json)
+
+;(define OWNER "concurrency")
+(define OWNER "jadudm")
+;(define PROCESSOR b64-decode)
+(define PROCESSOR (λ (o) o))
+
 (define github%
   (class object%
-    (init owner repos)
-    (define root "https://api.github.com/repos")
+    (init-field owner repos)
+    ; https://bitbucket.org/api/1.0/repositories/jadudm/plumbing-examples/src/master/REDME.md
+    ;(define root "https://api.github.com/repos")
+    (define root "https://bitbucket.org/api/1.0/repositories")
+    (define CONTENT-KEY 'data)
     (define/public (get path)
-      (let ([h (string->jsexpr 
-                (read-url (format "~a/~a/~a/contents/~a"
+      (define p (new process%))
+      (seq p
+        [(initial? 'ERROR-GH1)
+         (format "~a/~a/~a/src/master/~a"
                                   root
                                   owner
                                   repos
-                                  path)))])
-        'FIXME))))
+                                  path)]
+        [(string? 'ERROR-GH2)
+         (debug 'GITHUB "URL [~a]" (send p get))
+         (read-url (send p get))]
+        [(string? 'ERROR-GH3)
+         (debug 'GITHUB "Response [~a]" (send p get))
+         (string->jsexpr (send p get))]
+        [(hash? 'ERROR-GH4)
+         NO-CHANGE])
+      (send p get))
+      
+    
+    (define/public (get-content path)
+      (debug 'GITHUB "Fetching [~a]" path)
+      (let ([h (get path)])
+        (when (and (hash? h)
+                   (hash-has-key? h CONTENT-KEY))
+          (PROCESSOR (hash-ref h CONTENT-KEY)))))
+    
+    (super-new)
+    ))
                                   
                           
 
@@ -200,60 +253,70 @@
    
     
     ;; Move list of allowed categories to server?
+    (define categories '("Testing" "Basics"))
     (define (allowed-category? o)
-      (member o '("Testing" "Basics")))
+      (member o categories))
     
     ;; https://api.github.com/repos/concurrency/plumbing-examples/contents/repositories.conf
     ;; Use the API
     (define/public (get-menus)
       (define menu-hash (make-hash))
-      (define (extend-category! cat short blurb url)
-        (let ([ls (hash-ref menu-hash cat (λ () empty))])
-          (set! ls (snoc ls (list short blurb url)))
-          (hash-set! menu-hash cat ls)))
+      
+      (define (extend-category! conf)
+        (when (and (hash? conf)
+                   (hash-ref conf 'category))
+          (let ([ls (hash-ref menu-hash (hash-ref conf 'category) (λ () empty))])
+            (set! ls (snoc ls conf))
+            (hash-set! menu-hash (hash-ref conf 'category) ls))))
       
       (define p (new process% [context 'GET-MENUS]))
+      
       (debug (send p get-context) "Getting menus.")
       (seq p
         [(initial? 'ERROR-GET-ROOT)
-         (send model get-examples-root)]
-        [(string? 'ERROR-READ-WHOLE-URL)
-         (debug (send p get-context) "Reading from ~s" (send p get))
-         (debug (send p get-context) (read-all (get-impure-port (string->url (send p get)))))
-         (debug (send p get-context) (read-all (get-pure-port (string->url (send p get)))))
-         (read-url (send p get))]
-        [(url? 'ERROR-FETCHING-SUBMENUS)
-         (debug (send p get-context) "Died?")
-         (for ([repos (send p get)])
-           (debug (send p get-context) "REPOS: ~a" repos)
-           (let ([conf (process-config (read-url (format "~a/~a" repos "info.conf")))])
-             (debug (send p get-context) "CONF: ~a" conf)
-             (extend-category! (hash-ref conf 'category)
-                               (hash-ref conf 'name)
-                               (hash-ref conf 'tweet)
-                               (hash-ref conf 'url))))]
-        ))
+         (debug (send p get-context) "Generating github% object")
+         (new github% [owner OWNER] [repos "plumbing-examples"])]
+        [(object? 'ERROR-READ-WHOLE-URL)
+         (debug (send p get-context) "Getting content from ~a" (send p get))
+         (send (send p get) get-content "paths.conf")]
+        [(string? 'ERROR1)
+         (debug (send p get-context) "result:~n~s" (send p get))
+         (regexp-split "\n" (send p get))]
+        [(list? 'ERROR2)
+         (debug (send p get-context) "REPOSES:~n~a" (send p get))
+         (for ([path (send p get)])
+           (debug (send p get-context) "Considering [~a]" path)
+           (when (and (< 2 (string-length path))
+                      (not (regexp-match "#" path)))
+             (debug (send p get-context) "REPOS: ~a" path)
+             (let* ([gh (new github% [owner OWNER] [repos "plumbing-examples"])]
+                    [raw-conf (send gh get-content (format "~a/~a" path "info.conf"))])
+               (debug (send p get-context) "raw-conf: ~a" raw-conf)
+               (let ([conf (process-config raw-conf)])
+                 (debug (send p get-context) "CONF: ~a" conf)
+                 (extend-category! conf)))))]
+        )
+      menu-hash
+      )
              
     (define menus (get-menus))
     
     ;; Build the menus
-    (for ([m menus])
+    (for ([c categories])
       (define tmp (new menu%
                        [parent menu]
-                       [label (first m)]
+                       [label c]
                        ))
-      (for ([s (second m)])
+      (for ([s (hash-ref menus c)])
         (new menu-item% 
              [parent tmp]
-             [label (first s)]
+             [label (hash-ref s 'tweet)]
              [callback (λ (m e)
                          (new win-examples% 
                               [model model]
                               [main main]
-                              [code-title (first s)]
-                              [code-url (third s)])
-                         )]
-             [help-string (second s)])))
+                              [conf s]))]
+             )))
     
     (super-new)
     ))

@@ -117,7 +117,7 @@
       (define delta (new style-delta%))
       (send delta set-family 'modern)
       (send delta set-weight-on 'bold)
-      (send delta set-size-add 6)
+      (send delta set-size-add 4)
       (send text change-style delta 0 (send text last-position) #f)
       (apply-syntax-highlighting))
     

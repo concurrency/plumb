@@ -226,7 +226,7 @@
         ;; Store it
         [(hash? 'ERROR-STORING-BOARD-CONFIG)
          (debug (send gbc get-context) "~a" (filter-hash (send gbc get) 'hex))
-         (set! board-config (send gbc get))
+         (set! board-config (hash-copy (send gbc get)))
          (debug (send gbc get-context) "BOARD CONFIG: ~a" board-config)
          NO-CHANGE])
       
@@ -242,14 +242,18 @@
          (process-response (send firm get))]
         ;; Check that it came down
         [(hash? 'ERROR-FIRMWARE-LOOKS-KINDA-SHORT)
-         (let ([firm-leng (string-length (hash-ref (send firm get) 'hex))])
+         (let* ([the-firmware (hash-ref (send firm get) 'hex)]
+                [firm-leng (string-length the-firmware)])
            (cond
              [(< firm-leng MIN-FIRMWARE-SIZE)
               (raise)]
              [else
               (debug (send firm get-context) "Firmware length: ~a" firm-leng)
+              ;; (set! board-config (send firm get))
               ;; Add this to the board config?
-              (hash-set! board-config 'hex (hash-ref (send firm get) 'hex))
+              (hash-set! board-config 
+                         'hex 
+                         the-firmware)
               ])
            NO-CHANGE)])
       )

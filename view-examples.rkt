@@ -176,7 +176,20 @@
     (super-new)
     ))
 
-
+(define github%
+  (class object%
+    (init owner repos)
+    (define root "https://api.github.com/repos")
+    (define/public (get path)
+      (let ([h (string->jsexpr 
+                (read-url (format "~a/~a/~a/contents/~a"
+                                  root
+                                  owner
+                                  repos
+                                  path)))])
+        'FIXME))))
+                                  
+                          
 
 (define menu-examples%
   (class view%

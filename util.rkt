@@ -31,6 +31,24 @@
   (format "~a" 
           (base64-decode (string->bytes/locale str))))
 
+(define (read-url str)
+  (read-all (get-impure-port (string->url str)))
+  (read-all (get-pure-port (string->url str))))
+
+(define (strip str)
+  (for ([pat '("^[ ]+" "[ ]+$" "\n" "\r")])
+    (set! str (regexp-replace pat str "")))
+  str)
+
+(define (process-config str)
+  (define h (make-hash))
+  (for ([line (regexp-split str "\n")])
+    (let ([halves (map strip (regexp-split ":" line))])
+      (hash-set! h
+                 (->sym (first halves))
+                 (second halves))))
+  h)
+
 (define (symbol<? a b)
   (string<? (symbol->string a)
             (symbol->string b)))

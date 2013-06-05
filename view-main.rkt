@@ -7,6 +7,7 @@
          )
 
 (require "mvc.rkt"
+         ;; Menu stuff comes from here.
          "view-examples.rkt")
 
 
@@ -138,11 +139,12 @@
      )
     
     (define (populate-menu-bar)
-      (define sm (send model get-menus))
       ;(set! menu-bar (new menu-bar% [parent f]))
       (define examples (new menu%
                         [label "&Examples"]
                         [parent menu-bar]))
+      
+      ;; Loads stuff from servers
       (define example-submenus
         (new menu-examples%
              [model model]

@@ -42,9 +42,12 @@
     (cond
       [(hash? h)
        (let ([host (hash-ref h 'host)]
-             [port (hash-ref h 'port)])
+             [port (hash-ref h 'port)]
+             [examples (hash-ref h 'examples)])
          (debug 'APP-LAUNCH "HOST ~a PORT ~a" host port)
-         (send model set-remote-host host port))]
+         (send model set-remote-host host port)
+         (send model set-examples-root examples)
+         )]
       [else (alert-dialog "Something went very wrong." 'exit)])
     ))
 

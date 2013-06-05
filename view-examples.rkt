@@ -9,6 +9,7 @@
          net/url)
 
 (require "mvc.rkt"
+         "seq.rkt"
          "util.rkt"
          "debug.rkt")
 
@@ -16,12 +17,12 @@
   (class view%
     (init-field model main code-title code-url)
     (field [temp-file false])
-   
+    
     (define f (new frame% 
                    [label code-title]
                    [width 500]
                    [height 400]))
-                                  
+    
     (define editor-canvas (new editor-canvas%
                                [parent f]
                                [label ""]
@@ -60,7 +61,7 @@
                            [stretchable-width true]
                            [callback (λ (b e)
                                        (open-docs))]))
-                            
+    
     (define run (new button%
                      [parent h2]
                      [label "Run This Example"]
@@ -174,15 +175,53 @@
     (load-example)
     (super-new)
     ))
-    
+
+
+
 (define menu-examples%
   (class view%
     (init-field model main menu)
     
     (define/override (update)
       'FIXME)
+   
     
-    (define menus (send model get-menus))
+    ;; Move list of allowed categories to server?
+    (define (allowed-category? o)
+      (member o '("Testing" "Basics")))
+    
+    ;; https://api.github.com/repos/concurrency/plumbing-examples/contents/repositories.conf
+    ;; Use the API
+    (define/public (get-menus)
+      (define menu-hash (make-hash))
+      (define (extend-category! cat short blurb url)
+        (let ([ls (hash-ref menu-hash cat (λ () empty))])
+          (set! ls (snoc ls (list short blurb url)))
+          (hash-set! menu-hash cat ls)))
+      
+      (define p (new process% [context 'GET-MENUS]))
+      (debug (send p get-context) "Getting menus.")
+      (seq p
+        [(initial? 'ERROR-GET-ROOT)
+         (send model get-examples-root)]
+        [(string? 'ERROR-READ-WHOLE-URL)
+         (debug (send p get-context) "Reading from ~s" (send p get))
+         (debug (send p get-context) (read-all (get-impure-port (string->url (send p get)))))
+         (debug (send p get-context) (read-all (get-pure-port (string->url (send p get)))))
+         (read-url (send p get))]
+        [(url? 'ERROR-FETCHING-SUBMENUS)
+         (debug (send p get-context) "Died?")
+         (for ([repos (send p get)])
+           (debug (send p get-context) "REPOS: ~a" repos)
+           (let ([conf (process-config (read-url (format "~a/~a" repos "info.conf")))])
+             (debug (send p get-context) "CONF: ~a" conf)
+             (extend-category! (hash-ref conf 'category)
+                               (hash-ref conf 'name)
+                               (hash-ref conf 'tweet)
+                               (hash-ref conf 'url))))]
+        ))
+             
+    (define menus (get-menus))
     
     ;; Build the menus
     (for ([m menus])
@@ -202,6 +241,6 @@
                               [code-url (third s)])
                          )]
              [help-string (second s)])))
-                       
+    
     (super-new)
     ))

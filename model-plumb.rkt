@@ -55,10 +55,9 @@
            
            [compilation-result false]
            [message "Parallel programming for makers."]
-           ;; For server-supplied menus?
-           [menus false]
-           
+ 
            [first-compilation? true]
+           [examples-root false]
            )
     
     ;; For debugging
@@ -68,26 +67,9 @@
     (define/public (load-config)
       (set! config (new client-config%)))
     
-    
-    (define/public (get-menus)
-      ;; Perhaps fetch from server?
-      
-      `(("Testing" (("Heartbeat" "Tests if things are working."
-                                 ;; Text link in Github
-                                 "https://raw.github.com/concurrency/plumb/master/t/slow.occ"
-                                 ;; Docu link?
-                                 )))
-        
-        ("Basics" (("Blink" "A variation on Heartbeat."
-                            ;; Text link in Github
-                            "https://raw.github.com/concurrency/plumb/master/t/fast.occ"
-                            ;; Docu link?
-                            )
-                   ("Multi Blink" "Blink two LEDs at the same time."
-                                  ;; RAW link in Github
-                                  "https://raw.github.com/concurrency/plumb/master/t/fastest.occ"
-                                  ;; Docu link?
-                                  )))))
+    (define/public (set-examples-root str)
+      (set! examples-root str))
+    (define/public (get-examples-root) examples-root)
     
     (define/public (get-board-choices)
       (list "Arduino Duemilanove"))

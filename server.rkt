@@ -216,7 +216,8 @@
     (get-response 'ERROR)
     (make-hash `((hex . ,(read-all (response))))))
   
-  (debug 'FIRMWARE "~a" (string-length (response)))
+  ;; Comes back as a hash -- if it goes well.
+  ;; (debug 'FIRMWARE "~a" (string-length (response)))
   
   ;; Encode it with an 'OK and send it back.
   (encode-response 

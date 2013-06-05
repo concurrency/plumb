@@ -250,10 +250,16 @@
     
     (define/override (update)
       'FIXME)
-   
     
     ;; Move list of allowed categories to server?
-    (define categories '("Testing" "Basics"))
+    (define categories 
+      (let ([gh (new github%
+                     [owner "jadudm"]
+                     [repos "plumbing-examples"])])
+        (filter (λ (s)
+                  (> (string-length s) 2))
+                (regexp-split "\n" (send gh get-content "categories.conf")))))
+
     (define (allowed-category? o)
       (member o categories))
     

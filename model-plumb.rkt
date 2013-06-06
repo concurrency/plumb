@@ -260,6 +260,9 @@
       (set! main-file f)
       (update))
     
+    (define/public (get-main-file)
+      main-file)
+    
     (define/public (main-file-set?)
       (and main-file (file-exists? main-file)))
     
@@ -348,7 +351,7 @@
     ;; Need better checks down below
     
     (define/public (check-syntax)
-      'FIXME)
+      (compile* 'check-syntax))
     
     
     ;   ;;;;;;; ;;  ;;;;;    ;;       ;; ;;     ;     ;;    ;;     ;;;;;    ;;;;;;; 
@@ -517,8 +520,11 @@
            (close-input-port (send p get))
            resp)]
         
+        
+        ;; FIXME: What is going on here?
         [(any? 'ERROR-CHECK-RESPONSE)
          (let ([v (send p get)])
+           (debug (send p get-context) "COMPILE RESPONSE:~n~a" v)
            (cond 
              [(or (error-response? v)
                   (eof-object? v))
@@ -580,7 +586,12 @@
     
     
     (define/public (compile)
+      (compile* 'compile))
+    
+    (define (compile* flag)
       (define FIXME (λ args true))
+      (define compiling? (equal? flag 'compile))
+      
       (define p (new process% 
                      [context 'COMPILE]
                      [update (λ (msg)
@@ -605,8 +616,8 @@
          NO-CHANGE]
         
         ;; Write out the firmware
-        [(FIXME 'ERROR-WRITING-FIRMWARE)
-         (when first-compilation?
+        [(string? 'ERROR-WRITING-FIRMWARE)
+         (when (and compiling? first-compilation?)
            (write-firmware)
            (upload-firmware)
            (set! first-compilation? false))
@@ -634,9 +645,20 @@
          (send p message "Compiling code.")
          (compile-main-file)]
         
-        [(string? 'ERROR-WRITING-CODE)
-         (send p message "Sending code to Arduino.")
-         (write-and-upload-code (send p get))]
+        ;; FIXME: Where do I handle syntax errors?
+        [(any? 'ERROR-WRITING-CODE)
+         (let ([h (send p get)])
+           (debug 'COMPILE "Should be a string?: ~a" h)
+           (cond
+             [(and (hash? h) 
+                   (equal? (hash-ref h 'responsetype) "ERROR"))
+              (debug 'COMPILE "ERROR!:~n~a" (hash-ref h 'message))
+              (send p message (format "[ERR] ~a" (hash-ref h 'message)))
+              'ERROR]
+             [compiling?
+              (send p message "Sending code to Arduino.")
+              (write-and-upload-code (send p get))]
+             [else 'OK]))]
         
         [(symbol? 'DEBUG)
          (let ([positives '("Everything's groovy."
@@ -647,11 +669,13 @@
                             "Good job."
                             "One giant program for Arduino kind."
                             "Help, I'm stuck in an Arduino factory!")])
-         (case (send p get)
-           [(OK) (send p message (list-ref positives (random (length positives))))]
-           [else
-            (send p message (format "GURU MEDITATION NUMBER ~a"
-                                    (number->string (+ (random 2000000) 2000000) 16)))])
+           (case (send p get)
+             [(OK) (send p message (list-ref positives (random (length positives))))]
+             [else
+              ;; Do nothing; message set in previous sequence step.
+              'ERROR
+              ;(send p message (format "GURU MEDITATION NUMBER ~a" (number->string (+ (random 2000000) 2000000) 16)))
+              ])
            )]
         
         ))

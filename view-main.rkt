@@ -7,6 +7,7 @@
          )
 
 (require "mvc.rkt"
+         "debug.rkt"
          ;; Menu stuff comes from here.
          "view-examples.rkt")
 
@@ -90,9 +91,15 @@
                        [stretchable-width true]
                        [enabled false]
                        [callback (λ (b e)
+                                   (send b enable false)
                                    (update-model)
                                    (set-remote-host)
+                                   ;; Set the main file
+                                   (debug 'CHECK-SYNTAX "Main file: ~a" 
+                                          (send model get-main-file))
+                                   ;; Compile
                                    (send model check-syntax)
+                                   (send b enable true)
                                    )]))
     
     (define run (new button%
@@ -101,9 +108,17 @@
                      [stretchable-width true]
                      [enabled false]
                      [callback (λ (b e)
+                                 
+                                 (send b enable false)
                                  (update-model)
                                  (set-remote-host)
-                                 (send model compile))]
+                                 ;; Set the main file
+                                 (debug 'COMPILE "Main file: ~a" 
+                                        (send model get-main-file))
+                                 ;; Compile
+                                 (send model compile)
+                                 (send b enable true)
+                                 )]
                      ))
     
     (define messages (new message%
@@ -112,7 +127,7 @@
                           [auto-resize true]
                           (label "")))
     
-      
+    
     
     ;   ;;       ;;  ;;;;;;;  ;;      ;;  ;;      ;;   ;;   
     ;   ;;;     ;;;  ;;;;;;;  ;;;     ;;  ;;      ;; ;;;;;  
@@ -136,13 +151,13 @@
             (send host get-value)
             (send port get-value))
       |#
-     )
+      )
     
     (define (populate-menu-bar)
       ;(set! menu-bar (new menu-bar% [parent f]))
       (define examples (new menu%
-                        [label "&Examples"]
-                        [parent menu-bar]))
+                            [label "&Examples"]
+                            [parent menu-bar]))
       
       ;; Loads stuff from servers
       (define example-submenus
@@ -169,7 +184,7 @@
     
     (define (update-model)
       'DoNothing 
-      #|
+      
       ;; FIXME This can become a menu option.
       (send model set-arduino-port 
             (send serial-port get-string 
@@ -177,7 +192,7 @@
       (send model set-board-type 
             (send board get-string 
                   (send board get-selection)))
-      |#
+      
       )
     
     
@@ -199,7 +214,7 @@
       (when (send model get-message)
         (send messages set-label (send model get-message)))   
       )
-  
+    
     
     (super-new)
     ))

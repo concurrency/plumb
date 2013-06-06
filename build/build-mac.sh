@@ -77,7 +77,14 @@ pushd ../${BUILD}
   rm *.icns
   rm -rf ${APP}
   if [[ $1 = "upload" ]]; then
-    scp -i ~/.ssh/small-imac-berea ${DMGNAME}.dmg jadudm@jadud.com:~/jadud.com/downloads/   
+    if [[ -f ~/.ssh/small-imac-berea ]]; then
+      KEY=~/.ssh/small-imac/berea
+    fi
+    if [[ -f ~/.ssh/big-mac-berea ]]; then
+      KEY=~/.ssh/big-mac-berea
+    fi
+    scp -i "$KEY" ${DMGNAME}.dmg jadudm@jadud.com:~/jadud.com/downloads/   
+
     echo http://jadud.com/downloads/${DMGNAME}.dmg
   fi
   

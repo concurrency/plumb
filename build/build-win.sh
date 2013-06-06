@@ -43,7 +43,14 @@ pushd "$BUILD"
   echo Zip Everything
   "$ZIP" a -r "$DDNAME-$DATE.zip" "$DDNAME-$DATE"
   if [[ $1 = "upload" ]]; then
-    scp -i ~/.ssh/small-imac-berea "$DDNAME-$DATE".zip jadudm@jadud.com:~/jadud.com/downloads/   
+    if [[ -f ~/.ssh/small-imac-berea ]]; then
+      KEY=~/.ssh/small-imac/berea
+    fi
+    if [[ -f ~/.ssh/big-mac-berea ]]; then
+      KEY=~/.ssh/big-mac-berea
+    fi
+
+    scp -i "$KEY" "$DDNAME-$DATE".zip jadudm@jadud.com:~/jadud.com/downloads/   
     echo http://jadud.com/downloads/$DDNAME-$DATE.zip
   fi
 popd

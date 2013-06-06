@@ -24,14 +24,13 @@ pushd "$BUILD"
   echo   Making Destination Directories
   mkdir "$DEST"
 
-  echo   Make Temp Directory In Destination
-  mkdir "$DEST/temp"
-
 popd
 
 pushd "$BUILD"
   echo   Build Executable
-  "$RACO" exe -o "$DDNAME.exe" "$SRC/plumb-gui.rkt"
+  cp "$SRC"/build/arduino.ico "$BUILD"
+  "$RACO" exe --ico arduino.ico -o "$DDNAME.exe" "$SRC/plumb-gui.rkt"
+  rm arduino.ico
   echo   Make It Distributable
   "$RACO" distribute "$DEST" "$DDNAME.exe"
   echo Remove the original build to eliminate confusion
@@ -44,9 +43,14 @@ cp -R "$SRC/client-config" "$DEST/client-config"
 pushd "$BUILD"
   echo Zip Everything
   "$ZIP" a -r "$DDNAME.zip" "$DDNAME"
+  if [[ $1 = "upload" ]]; then
+    scp -i ~/.ssh/small-imac-berea Plumb.zip jadudm@jadud.com:~/jadud.com/downloads/   
+  fi
 popd
 
 # echo SCP Everything
 # "$PSCP" "$DDNAME.zip" jadudm@transterpreter.org:/srv/www/org/transterpreter.download/files/flow/
+
+
 
 echo End Of Script

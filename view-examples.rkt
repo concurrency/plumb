@@ -13,6 +13,52 @@
          "util.rkt"
          "debug.rkt")
 
+(define after%
+  (class text%
+    
+    (define (reapply-syntax)
+      (define txt (send this get-text))
+      (define delta (new style-delta%))
+      ;; Clear all color.
+      (send delta set-delta-foreground "Black")
+      (send this change-style delta 0 (string-length (send this get-text)) #f)
+      (apply-syntax-highlighting))
+    
+    (define/augment (after-insert start len)
+      (reapply-syntax))
+    (define/augment (after-delete start len)
+      (reapply-syntax))
+    
+    (define/public (apply-syntax-highlighting)
+      (define txt (send this get-text))
+      (define delta (new style-delta%))
+      
+      ;; Hightlight Keywords
+      (send delta set-delta-foreground "Dark Green")
+      (for ([pat (list "PROC" "SEQ" "PAR" "IF" "WHILE" "SKIP" "STOP" "IS")])
+        (for ([loc (regexp-match-positions* pat txt)])
+          (send this change-style delta (car loc) (cdr loc) #f)))
+      
+      ;; Constants
+      (send delta set-delta-foreground "DodgerBlue")
+      (for ([pat (list "TRUE" "FALSE" "[0-9]+")])
+        (for ([loc (regexp-match-positions* pat txt)])
+          (send this change-style delta (car loc) (cdr loc) #f)))
+      
+      ;; Comments
+      (send delta set-delta-foreground "Khaki")
+      (for ([pat (list "--.*?\n")])
+        (for ([loc (regexp-match-positions* pat txt)])
+          (send this change-style delta (car loc) (cdr loc) #f)))
+      
+      ;; Types
+      (send delta set-delta-foreground "DarkRed")
+      (for ([pat (list "INT" "BYTE" "BOOL" "CHAN" "INITIAL" "LEVEL" "REAL32" "INT16" "INT32")])
+        (for ([loc (regexp-match-positions* pat txt)])
+          (send this change-style delta (car loc) (cdr loc) #f))))
+    (super-new)))
+      
+
 (define win-examples%
   (class view%
     (init-field model main conf)
@@ -28,7 +74,11 @@
                                [label ""]
                                [stretchable-height true]))
     
-    (define text (new text%))
+    ;; keymap% and text%
+    (define keymap (new keymap%))
+    (add-text-keymap-functions keymap)
+    (define text (new after%))
+    (send text set-keymap keymap)
     
     (define v1 (new vertical-panel%
                     [parent f]
@@ -142,41 +192,9 @@
       (send delta set-weight-on 'bold)
       (send delta set-size-add 4)
       (send text change-style delta 0 (send text last-position) #f)
-      (apply-syntax-highlighting))
+      (send text apply-syntax-highlighting))
     
-    ;; http://docs.racket-lang.org/draw/color-database___.html?q=color%25
-    (define c 0)
-    (define (apply-syntax-highlighting)
-      (define txt (send text get-text))
-      (define delta (new style-delta%))
-      
-      (debug 'SYNTAX-HIGHLIGHT "SH: ~a" c)
-      (set! c (add1 c))
-      
-      ;; Hightlight Keywords
-      (send delta set-delta-foreground "Dark Green")
-      (for ([pat (list "PROC" "SEQ" "PAR" "IF" "WHILE" "SKIP" "STOP" "IS")])
-        (for ([loc (regexp-match-positions* pat txt)])
-          (send text change-style delta (car loc) (cdr loc) #f)))
-      
-      ;; Constants
-      (send delta set-delta-foreground "DodgerBlue")
-      (for ([pat (list "TRUE" "FALSE" "[0-9]+")])
-        (for ([loc (regexp-match-positions* pat txt)])
-          (send text change-style delta (car loc) (cdr loc) #f)))
-      
-      ;; Comments
-      (send delta set-delta-foreground "Khaki")
-      (for ([pat (list "--.*?\n")])
-        (for ([loc (regexp-match-positions* pat txt)])
-          (send text change-style delta (car loc) (cdr loc) #f)))
-      
-      ;; Types
-      (send delta set-delta-foreground "DarkRed")
-      (for ([pat (list "INT" "BYTE" "BOOL" "CHAN" "INITIAL" "LEVEL" "REAL32" "INT16" "INT32")])
-        (for ([loc (regexp-match-positions* pat txt)])
-          (send text change-style delta (car loc) (cdr loc) #f)))
-      )
+    
     
     (define/override (update)
       'FIXME)

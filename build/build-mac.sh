@@ -1,9 +1,11 @@
+DATE=`date +%Y%m%d`
 BASE=Plumb
 APP=${BASE}.app
 PLUMBCONTENTS=${APP}/Contents
 ICON=arduino
 VOLICON=concurrencycc-logo
 BUILD=build-mac
+DMGNAME=${BASE}-${DATE}
 
 function announce () {
   echo $1
@@ -52,7 +54,7 @@ pushd ../${BUILD}
   # mkdir -p ${PLUMBCONTENTS}/temp
   announce "Done copying."
   # Remove the DMG if it exists
-  rm -rf ${BASE}.dmg
+  rm -rf ${DMGNAME}.dmg
 
   # Unmount the drive, if it is mounted
   if [ -d /Volumes/Flow ]; then
@@ -65,7 +67,7 @@ pushd ../${BUILD}
     --icon-size 128 \
 	  --icon ${APP} 220 200 \
 	  --volicon ${VOLICON}-256.icns \
-	  ${BASE}.dmg ${APP}
+	  ${DMGNAME}.dmg ${APP}
 
   announce "Done making disk image."
 
@@ -74,6 +76,11 @@ pushd ../${BUILD}
   rm *.png
   rm *.icns
   rm -rf ${APP}
+  if [[ $1 = "upload" ]]; then
+    scp -i ~/.ssh/small-imac-berea ${DMGNAME}.dmg jadudm@jadud.com:~/jadud.com/downloads/   
+    echo http://jadud.com/downloads/${DMGNAME}.dmg
+  fi
+  
 popd
 
 announce "All done."

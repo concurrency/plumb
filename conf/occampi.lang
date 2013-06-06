@@ -3,10 +3,12 @@
     <metadata>
       <property name="mimetypes">text/x-occam</property>
       <property name="globs">*.occ;*.module;*.inc</property>
+      <property name="line-comment-start">--</property>
     </metadata>
     
     
     <styles>
+      <style id="comment" _name="Comment" map-to="def:comment"/>
       <style id="string" _name="String" map-to="def:string"/>
       <style id="escaped-character" _name="Escaped Character" map-to="def:special-char"/>
       <style id="preprocessor" _name="Preprocessor" map-to="def:preprocessor"/>
@@ -14,13 +16,21 @@
       <style id="char" _name="Character" map-to="def:character"/>
       <style id="keyword" _name="Keyword" map-to="def:keyword"/>
       <style id="type" _name="Data Type" map-to="def:type"/>
+      <style id="hexadecimal" _name="Hexadecimal number" map-to="def:constant"/>
+      <style id="bool" _name="Boolean Constant" map-to="def:constant"/>
+      <style id="commsop" _name="Communications Operator" map-to="def:commsop" />
+      <style id="operators" _name="Binary and unary operators" map-to="def:operators" />
     </styles>
     <definitions>
         <context id="occam">
             <include>
+            
+                <context id="commsop" style-ref="commsop">
+                  <match>\?|!</match>
+                </context>
 
                 <context id="comment" style-ref="comment">
-                    <start>--</start>
+                    <start>\-\-</start>
                     <end>$</end>
                 </context>
 
@@ -46,8 +56,35 @@
                 <context ref="def:decimal"/>
                 <context ref="def:float"/>
 
+                <context id="hexadecimal" style-ref="hexadecimal">
+                  <match>#[a-fA-F0-9]+</match>
+                </context>
+                
+                <context id="bool" style-ref="bool">
+                  <match>TRUE|FALSE</match>
+                </context>
+
+                <context id="operators" style-ref="operators">
+                  <keyword>REM</keyword>
+                  <keyword>PLUS</keyword>
+                  <keyword>MINUS</keyword>
+                  <keyword>TIMES</keyword>
+                  <keyword>BITAND</keyword>
+                  <keyword>BITOR</keyword>
+                  <keyword>AND</keyword>
+                  <keyword>OR</keyword>
+                  <keyword>BITAND</keyword>
+                  <keyword>BITNOT</keyword>
+                  <keyword>NOT</keyword>
+                  <keyword>SIZE</keyword>
+                </context>
+                
                 <context id="keywords" style-ref="keyword">
                     <keyword>IF</keyword>
+                    <keyword>ROUND</keyword>
+                    <keyword>TRUNC</keyword>
+                    <keyword>OF</keyword>
+                    <keyword>FROM</keyword>
                     <keyword>FOR</keyword>
                     <keyword>WHILE</keyword>
                     <keyword>FUNCTION</keyword>
@@ -57,30 +94,57 @@
                     <keyword>SEQ</keyword>
                     <keyword>PROC</keyword>
                     <keyword>ALT</keyword>
+                    <keyword>PRI ALT</keyword>
                     <keyword>IS</keyword>
+                    <keyword>CASE</keyword>
+                    <keyword>DATA TYPE</keyword>
+                    <keyword>RECORD</keyword>
+                    <keyword>INLINE</keyword>
+                    <keyword>VALOF</keyword>
+                    <keyword>VAL</keyword>
+                    <keyword>INLINE</keyword>
+                    <keyword>INITIAL</keyword>
+                    <keyword>RETYPES</keyword>
+                    <keyword>RESHAPES</keyword>
+                    <keyword>AFTER</keyword>
+                    <keyword>MOSTPOS</keyword>
+                    <keyword>MOSTNEG</keyword>
+                    <keyword>PLACED</keyword>
+                    <keyword>PRI PAR</keyword>
+                    <keyword>CASE</keyword>
+                    <keyword>ANY</keyword>
+                    <keyword>PACKED RECORD</keyword>
+                    <keyword>RESULT</keyword>
+                    
                 </context>
 
+
                 <context id="types" style-ref="type">
+                    <keyword>BOOL</keyword>
+                    <keyword>BYTE</keyword>
                     <keyword>CHAN</keyword>
-                    <keyword>INT</keyword>
                     <keyword>INT16</keyword>
                     <keyword>INT32</keyword>
-                    <keyword>REAL</keyword>
-                    <keyword>REAL32</keyword>
-                    <keyword>BYTE</keyword>
-                    <keyword>SIGNAL</keyword>
+                    <keyword>INT64</keyword>
+                    <keyword>INT</keyword>
                     <keyword>LEVEL</keyword>
+                    <keyword>REAL32</keyword>
+                    <keyword>REAL64</keyword>
+                    <keyword>REAL</keyword>
+                    <keyword>SIGNAL</keyword>
+                    <keyword>TIMER</keyword>
                 </context>
 
                 <context id="preprocessor"
-                            style-ref="preprocessor">
-                    <prefix>^#</prefix>
+                         style-ref="preprocessor">
+                    <prefix>^\s*#</prefix>
+                    
                     <!-- Double-check these -->
                     <keyword>INCLUDE</keyword>
-                    <keyword>PRAGMA</keyword>
-                    <keyword>DEFINED</keyword>
-                    <keyword>IF</keyword>
-                    <keyword>ENDIF</keyword>
+                    <keyword>PRAGMA.*</keyword>
+                    <keyword>DEFINE.*</keyword>
+                    <keyword>ENDIF.*</keyword>
+                    <keyword>IF.*</keyword>
                 </context>
 
             </include>

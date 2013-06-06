@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ This file is part of GtkSourceView
+
+ Copyright (C) 2006-2007 GtkSourceView team
+ Author: Yevgen Muntyan <muntyan@tamu.edu>
+
+ GtkSourceView is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ GtkSourceView is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+Modified 20130605 by Matt Jadud (matt@concurrency.cc)
+
+-->
+<style-scheme id="concurrency" _name="concurrency.cc" version="1.0">
+  <author>Matt Jadud (matt@concurrency.cc)</author>
+  <_description>A style for occam-pi programming.</_description>
+
+  <!-- Palette -->
+  <!-- http://www.computerhope.com/htmcolor.htm -->
+  <color name="blue"         value="#0000FF"/>
+  <color name="black"        value="#000000"/>
+  <color name="columbiablue" value="#87AFC7"/>
+  <color name="magenta"      value="#FF00FF"/>
+  <color name="violet"       value="#6A5ACD"/>
+  <color name="cyan"         value="#008A8C"/>
+  <color name="green"        value="#2E8B57"/>
+  <color name="darkgreen"    value="#347235"/>
+  <color name="bordeaux"     value="#A52A2A"/>
+  <color name="red"          value="#FF0000"/>
+  <color name="yellow"       value="#FFFF00"/>
+  <color name="purple"       value="#A020F0"/>
+  <color name="purplejam"    value="#6A287E"/>
+  <color name="beer"         value="#FBB117"/>
+
+  <!-- Bracket Matching -->
+  <style name="bracket-match"               foreground="#white" background="#grey" bold="true"/>
+  <style name="bracket-mismatch"            foreground="#white" background="#red" bold="true"/>
+
+  <!-- Search Matching -->
+  <style name="search-match"                background="yellow"/>  
+  
+  <!-- Comments -->
+  <style name="def:comment"                 foreground="columbiablue"/>
+  <style name="def:shebang"                 foreground="blue" bold="true"/>
+  <style name="def:doc-comment-element"     italic="true"/>
+
+  <!-- Constants -->
+  <style name="def:constant"                foreground="purplejam"/>
+  <style name="def:special-char"            foreground="violet"/>
+
+  <!-- Identifiers -->
+  <style name="def:identifier"              foreground="cyan"/>
+
+  <!-- Statements -->
+  <style name="def:statement"               foreground="bordeaux" bold="true"/>
+
+  <!-- Types -->
+  <style name="def:type"                    foreground="green" bold="true"/>
+
+  <!-- Others -->
+  <style name="def:preprocessor"            foreground="purple"/>
+  <style name="def:error"                   background="red" bold="true"/>
+  <style name="def:note"                    foreground="blue" background="yellow" bold="true"/>
+  <style name="def:commsop"                 background="beer" bold="true" />
+  <style name="def:operators"               foreground="cyan" />
+  <style name="def:underlined"              italic="true" underline="true"/>
+
+  <!-- legacy styles for old lang files -->
+  <style name="Others"                      foreground="#2E8B57" bold="true"/>
+  <style name="Others 2"                    foreground="#008B8B"/>
+  <style name="Others 3"                    foreground="#6A5ACD"/>
+
+</style-scheme>

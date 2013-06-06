@@ -4,6 +4,7 @@
          menu-examples%)
 
 (require racket/gui
+         framework
          browser/external
          browser
          net/url)
@@ -15,6 +16,30 @@
 
 (define after%
   (class text%
+    (define (hex->triplet str)
+      (define (conv ls)
+        (string->number (second ls) 16))
+      (map conv
+           (list (regexp-match "#(..)...." str)
+                 (regexp-match "#..(..).." str)
+                 (regexp-match "#....(..)" str))))
+    
+    ;; These are bad copy-pastes from the WWW.
+    ;; I'm going to force the cleanup with a regexp.
+    (define blue (apply make-color (hex->triplet "#0000FF")))
+    (define black (apply make-color (hex->triplet "#000000")))
+    (define columbiablue (apply make-color (hex->triplet "#87AFC7")))
+    (define magenta (apply make-color (hex->triplet "#FF00FF")))
+    (define violet (apply make-color (hex->triplet "#6A5ACD")))
+    (define cyan (apply make-color (hex->triplet "#008A8C")))
+    (define green (apply make-color (hex->triplet "#2E8B57")))
+    (define darkgreen (apply make-color (hex->triplet "#347235")))
+    (define bordeaux (apply make-color (hex->triplet "#A52A2A")))
+    (define red (apply make-color (hex->triplet "#FF0000")))
+    (define yellow (apply make-color (hex->triplet "#FFFF00")))
+    (define purple (apply make-color (hex->triplet "#A020F0")))
+    (define purplejam (apply make-color (hex->triplet "#6A287E")))
+    (define beer (apply make-color (hex->triplet "#FBB117")))
     
     (define (reapply-syntax)
       (define txt (send this get-text))
@@ -34,30 +59,30 @@
       (define delta (new style-delta%))
       
       ;; Hightlight Keywords
-      (send delta set-delta-foreground "Dark Green")
+      (send delta set-delta-foreground bordeaux)
       (for ([pat (list "PROC" "SEQ" "PAR" "IF" "WHILE" "SKIP" "STOP" "IS")])
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (car loc) (cdr loc) #f)))
       
       ;; Constants
-      (send delta set-delta-foreground "DodgerBlue")
+      (send delta set-delta-foreground purplejam)
       (for ([pat (list "TRUE" "FALSE" "[0-9]+")])
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (car loc) (cdr loc) #f)))
       
       ;; Comments
-      (send delta set-delta-foreground "Khaki")
+      (send delta set-delta-foreground columbiablue)
       (for ([pat (list "--.*?\n")])
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (car loc) (cdr loc) #f)))
       
       ;; Types
-      (send delta set-delta-foreground "DarkRed")
+      (send delta set-delta-foreground green)
       (for ([pat (list "INT" "BYTE" "BOOL" "CHAN" "INITIAL" "LEVEL" "REAL32" "INT16" "INT32")])
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (car loc) (cdr loc) #f))))
     (super-new)))
-      
+
 
 (define win-examples%
   (class view%
@@ -75,10 +100,20 @@
                                [stretchable-height true]))
     
     ;; keymap% and text%
+    (define keymap (keymap:get-editor))
+    ; OR
+    #|
     (define keymap (new keymap%))
-    (add-text-keymap-functions keymap)
+    (add-text-keymap-functions keymap) 
+    (send keymap map-function "c:x" "cut-clipboard")
+    (send keymap map-function "c:c" "copy-clipboard")
+    (send keymap map-function "c:v" "paste-clipboard")
+    (send keymap map-function "middlebutton" "paste-x-selection")
+    |# 
+    
     (define text (new after%))
     (send text set-keymap keymap)
+    
     
     (define v1 (new vertical-panel%
                     [parent f]
@@ -175,7 +210,7 @@
                                         (hash-ref conf key))))
           (set! result (snoc result (format "~a~n" line))))
         (apply string-append result)))
-            
+    
     (define/public (load-example)
       (debug 'LOAD-EXAMPLE "Loading from conf:~n~a" conf)
       (define content (replace-tags-in-code conf))
@@ -235,10 +270,10 @@
       (seq p
         [(initial? 'ERROR-GH1)
          (format "~a/~a/~a/src/master/~a"
-                                  root
-                                  owner
-                                  repos
-                                  path)]
+                 root
+                 owner
+                 repos
+                 path)]
         [(string? 'ERROR-GH2)
          (debug 'GITHUB "URL [~a]" (send p get))
          (read-url (send p get))]
@@ -248,7 +283,7 @@
         [(hash? 'ERROR-GH4)
          NO-CHANGE])
       (send p get))
-      
+    
     
     (define/public (get-content path)
       (debug 'GITHUB "Fetching [~a]" path)
@@ -259,8 +294,8 @@
     
     (super-new)
     ))
-                                  
-                          
+
+
 
 (define menu-examples%
   (class view%
@@ -277,7 +312,7 @@
         (filter (λ (s)
                   (> (string-length s) 2))
                 (regexp-split "\n" (send gh get-content "categories.conf")))))
-
+    
     (define (allowed-category? o)
       (member o categories))
     
@@ -322,7 +357,7 @@
         )
       menu-hash
       )
-             
+    
     (define menus (get-menus))
     
     ;; Build the menus

@@ -127,6 +127,15 @@
                           [auto-resize true]
                           (label "")))
     
+    (define err-msg-canvas (new editor-canvas%
+                                (parent f)
+                                (label "")
+                                (stretchable-width true)
+                                (line-count 3)
+                                ))
+    (define err-msg-text (new text% (auto-wrap true)))
+    (send err-msg-canvas set-editor err-msg-text)
+    
     
     
     ;   ;;       ;;  ;;;;;;;  ;;      ;;  ;;      ;;   ;;   
@@ -186,9 +195,10 @@
       'DoNothing 
       
       ;; FIXME This can become a menu option.
-      (send model set-arduino-port 
-            (send serial-port get-string 
-                  (send serial-port get-selection)))
+      (when (not (zero? (length (send model get-arduino-ports))))
+        (send model set-arduino-port 
+              (send serial-port get-string 
+                    (send serial-port get-selection))))
       (send model set-board-type 
             (send board get-string 
                   (send board get-selection)))
@@ -213,6 +223,10 @@
       ;; Do we have any messages to display?
       (when (send model get-message)
         (send messages set-label (send model get-message)))   
+      
+      (when (not (zero? (string-length (send model get-error-message))))
+        (send err-msg-text erase)
+        (send err-msg-text insert (send model get-error-message)))
       )
     
     

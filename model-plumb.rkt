@@ -17,6 +17,7 @@
          "response-handling.rkt"
          "code-execution.rkt"
          "config-client.rkt"
+         "syntax-error-handling.rkt"
          )
 
 (define MIN-FIRMWARE-SIZE 10000)
@@ -55,6 +56,7 @@
            
            [compilation-result false]
            [message "Parallel programming for makers."]
+           [error-message ""]
  
            [first-compilation? true]
            [examples-root false]
@@ -155,7 +157,8 @@
       (set! arduino-ports (map ->string (list-arduinos)))
       (update))
     
-    (define/public (get-arduino-ports) arduino-ports)
+    (define/public (get-arduino-ports) 
+      arduino-ports)
     
     (define (port->platform-specific-port sp)
       (case (system-type)
@@ -322,6 +325,7 @@
     
     
     (define/public (get-message) message)
+    (define/public (get-error-message) error-message)
     
     (define/public (get-compilation-result) compilation-result)
     
@@ -654,29 +658,33 @@
                    (equal? (hash-ref h 'responsetype) "ERROR"))
               (debug 'COMPILE "ERROR!:~n~a" (hash-ref h 'message))
               (send p message (format "[ERR] ~a" (hash-ref h 'message)))
-              'ERROR]
+              h]
              [compiling?
               (send p message "Sending code to Arduino.")
               (write-and-upload-code (send p get))]
-             [else 'OK]))]
+             [else h]))]
         
-        [(symbol? 'DEBUG)
-         (let ([positives '("Everything's groovy."
-                            "Five-by-five on the Arduino."
-                            "Super-freaky code is running on the Arduino."
-                            "I'm running AMAZING code."
-                            "You should be well chuffed."
-                            "Good job."
-                            "One giant program for Arduino kind."
-                            "Help, I'm stuck in an Arduino factory!")])
-           (case (send p get)
-             [(OK) (send p message (list-ref positives (random (length positives))))]
-             [else
-              ;; Do nothing; message set in previous sequence step.
-              'ERROR
-              ;(send p message (format "GURU MEDITATION NUMBER ~a" (number->string (+ (random 2000000) 2000000) 16)))
-              ])
-           )]
+        [(hash? 'DEBUG)
+         (let ([h (send p get)])
+           (let ([positives '("Everything's groovy."
+                              "Five-by-five on the Arduino."
+                              "Super-freaky code is running on the Arduino."
+                              "I'm running AMAZING code."
+                              "You should be well chuffed."
+                              "Good job."
+                              "One giant program for Arduino kind."
+                              "Help, I'm stuck in an Arduino factory!")])
+             (case (hash-ref h 'responsetype)
+               [("OK") 
+                (set! error-message "")
+                (send p message (list-ref positives (random (length positives))))]
+               [else
+                ;; Do nothing; message set in previous sequence step.
+                'ERROR
+                (set! error-message (process-error-message h))
+                (send p message (format "GURU MEDITATION NUMBER ~a" (number->string (+ (random 2000000) 2000000) 16)))
+                ])
+           ))]
         
         ))
     

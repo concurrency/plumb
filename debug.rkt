@@ -32,6 +32,10 @@
                          
     (case (system-type)
       [(macosx)
+       (printf "[~a] ~a~n"
+                  key
+                  (format msg args ...))]
+       #|
        (with-output-to-file
            #:exists 'append
          "/tmp/plumb.log"
@@ -40,6 +44,7 @@
                   key
                   (apply format (cons msg (map filter-hash (list args ...))))
                   )))]
+       |#
       [else 
        (printf "[~a] ~a~n"
                   key

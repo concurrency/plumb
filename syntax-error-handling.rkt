@@ -2,7 +2,10 @@
 
 (provide (all-defined-out))
 
-(require "debug.rkt")
+(require "debug.rkt"
+         "github.rkt"
+         "util.rkt"
+         )
 
 (define error-regexps (make-parameter false))
 
@@ -38,20 +41,27 @@
   ))
 
 (define (load-error-regexps)
-  (let ([gh (new github%
-                 [owner "jadudm"]
-                 [repos "plumbing-syntax-errors"])])
-    (let ([pats
-           (map (λ (e)
-                  (err-pat (first e)
-                           (second e)
-                           (third e)
-                           (fourth e)
-                           (fifth e)))
-                (read (open-input-string
-                       (send gh get-content "errors.rkt"))))])
-      (debug 'SYNTAX-ERROR-HANDLING "~a" pats)
-      (error-regexps pats))))
+  (define gh (new github%
+                    [owner "jadudm"]
+                    [repos "plumbing-syntax-errors"]))
+  (define gh-read
+    (read (open-input-string
+           (send gh get-content "errors.rkt"))))
+
+  (debug 'SYNTAX-ERROR-HANDLING "~a~n" gh-read)
+  
+  (let ([pats
+         (map (λ (e)
+                (err-pat (->sym (first e))
+                         (second e)
+                         (map ->sym (third e))
+                         (string-append BASE (fourth e))
+                         (append BASE-PARTS (list (->sym (fifth e))))
+                         ))
+              gh-read)])
+    (debug 'SYNTAX-ERROR-HANDLING "~a" pats)
+    (error-regexps pats)))
+
     
   
 #|

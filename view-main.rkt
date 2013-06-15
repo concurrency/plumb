@@ -9,7 +9,8 @@
 (require "mvc.rkt"
          "debug.rkt"
          ;; Menu stuff comes from here.
-         "view-examples.rkt")
+         "view-examples.rkt"
+         "syntax-error-handling.rkt")
 
 
 ;   ;;       ;;     ;;     ;;  ;;      ;; 
@@ -27,17 +28,18 @@
 (define win-main%
   (class view% 
     (init-field model)
+    (define first-check-or-compile? true)
     
     (define f (new frame%
                    [label "Plumb @ concurrency.cc"]
                    [width 400]
                    [height 200]
                    ))
-    
+    #|
     (define hortz1 (new horizontal-panel%
                         [parent f]))
     
-    #|
+    
     (define host (new text-field% 
                       [parent hortz1]
                       [label "Server"]
@@ -53,19 +55,23 @@
                       ))
     |#
     
+    (define top-half (new vertical-panel%
+                          [parent f]
+                          [stretchable-height false]))
+    
     (define serial-port (new choice%
-                             [parent f]
+                             [parent top-half]
                              [label "Arduino Port"]
                              [choices 
                               (send model get-arduino-ports)]))
     
     (define board (new choice% 
-                       [parent f]
+                       [parent top-half]
                        [label "Board Type"]
                        [choices (send model get-board-choices)]))
     
     (define hortz2 (new horizontal-panel%
-                        [parent f]))
+                        [parent top-half]))
     
     (define choose-file (new button%
                              [parent hortz2]
@@ -94,10 +100,17 @@
                                    (send b enable false)
                                    (update-model)
                                    (set-remote-host)
+                                   
                                    ;; Set the main file
                                    (debug 'CHECK-SYNTAX "Main file: ~a" 
                                           (send model get-main-file))
                                    ;; Compile
+                                
+                                   (when first-check-or-compile?
+                                     (set! first-check-or-compile? false)
+                                     ;; This loads things from Bitbucket.
+                                     (load-error-regexps))
+                                   
                                    (send model check-syntax)
                                    (send b enable true)
                                    )]))
@@ -115,6 +128,12 @@
                                  ;; Set the main file
                                  (debug 'COMPILE "Main file: ~a" 
                                         (send model get-main-file))
+                                 
+                                 (when first-check-or-compile?
+                                     (set! first-check-or-compile? false)
+                                     ;; This loads things from Bitbucket.
+                                     (load-error-regexps))
+                                 
                                  ;; Compile
                                  (send model compile)
                                  (send b enable true)
@@ -127,11 +146,15 @@
                           [auto-resize true]
                           (label "")))
     
+    (define bottom-half (new vertical-panel%
+                             [parent f]
+                             [stretchable-height true]))
+    
     (define err-msg-canvas (new editor-canvas%
-                                (parent f)
+                                (parent bottom-half)
                                 (label "")
                                 (stretchable-width true)
-                                (line-count 3)
+                                (line-count 5)
                                 ))
     (define err-msg-text (new text% (auto-wrap true)))
     (send err-msg-canvas set-editor err-msg-text)

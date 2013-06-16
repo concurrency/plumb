@@ -3,6 +3,9 @@
 PROC main ()
   PAR
     foo ()
+    bar ()
+    SKIP
+    STOP
     blink (13, 100)
     blink (5, 333)
 :

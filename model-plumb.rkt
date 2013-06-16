@@ -687,6 +687,7 @@
          (debug 'COMPILE "Adding files: ~a" (send p get))
          (send p message "Uploading code.")
          (parameterize ([current-directory (extract-filedir main-file)])
+           (add-file main-file)
            (for ([f (send p get)])
              (add-file f)))
          NO-CHANGE]

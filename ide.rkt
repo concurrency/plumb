@@ -41,53 +41,48 @@
       (define h1 (new horizontal-panel%
                       [parent ribbon]))
       
+      (define (compile-check-callback kind)
+        (λ (b e)
+          (let ([current-file 
+                 (send (current-text) get-filename)])
+            (cond
+              [current-file
+               (debug 'IDE-COMPILE "COMPILE FILE: ~a" current-file)
+               ;; Set the main file
+               (send hardware set-main-file current-file)
+               
+               (debug 'IDE-COMPILE "Main file: ~a" (send hardware get-main-file))
+               
+               (case kind
+                 [(compile)
+                  (send hardware compile)]
+                 [(check)
+                  (send hardware check-syntax)])]
+               
+              [else
+               (case kind
+                 [(compile)
+                  (send f set-status-text 
+                        "File must be saved before it can be compiled.")]
+                 [(check)
+                  (send f set-status-text 
+                        "File must be saved before it can be compiled.")])]
+              ))))
+              
+      
       (define check-code (new button%
                               [parent h1]
                               [label "Check Code"]
                               [stretchable-height true]
                               [stretchable-width true]
-                              [callback (λ (b e)
-                                          ;(send b enable false)
-                                          (cond
-                                            [(send (current-text) get-filename)
-                                             
-                                             ;; Set the main file
-                                             (send hardware set-main-file 
-                                                   (send (current-text) get-filename))
-                                             
-                                             (debug 'CHECK-SYNTAX "Main file: ~a" 
-                                                    (send hardware get-main-file))
-                                             ;; Compile
-                                             (send hardware check-syntax)]
-                                            [else
-                                             (send f set-status-text 
-                                                   "File must be saved before it can be checked.")])
-                                          ;(send b enable true)
-                                          )]))
+                              [callback (compile-check-callback 'check)]))
       (define compile-code (new button%
                                 [parent h1]
                                 [label (format "Send code to ~a"
                                                (first
                                                 (send hardware get-board-choices)))]
                                 [stretchable-width true]
-                                [callback (λ (b e)
-                                            ;(send b enable false)
-                                            (cond
-                                              [(send (current-text) get-filename)
-                                               
-                                               ;; Set the main file
-                                               (send hardware set-main-file 
-                                                     (send (current-text) get-filename))
-                                               
-                                               (debug 'CHECK-SYNTAX "Main file: ~a" 
-                                                      (send hardware get-main-file))
-                                               ;; Compile
-                                               (send hardware compile)]
-                                              [else
-                                               (send f set-status-text 
-                                                     "File must be saved before it can be compiled.")])
-                                            ;(send b enable true)
-                                            )]))
+                                [callback (compile-check-callback 'compile)]))
       
       
       (define h2 (new horizontal-panel%

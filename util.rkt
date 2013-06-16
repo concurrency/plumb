@@ -113,13 +113,13 @@
 
 
 (define (occam-file? filename)
-  (regexp-match "\\.occ$" filename))
+  (regexp-match #px"\\.occ$" filename))
 
 (define (hex-file? filename)
-  (regexp-match "\\.hex$" filename))
+  (regexp-match #px"\\.hex$" filename))
 
 (define (file-extension filename)
-  (third (regexp-match "^(.*)\\.(.*?)$" (extract-filename filename))))
+  (third (regexp-match #px"^(.*)\\.(.*?)$" (extract-filename filename))))
 
 (define make-server-url 
   (λ args

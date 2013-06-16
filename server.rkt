@@ -98,6 +98,7 @@
 
 (define (add-file req b64)
   (define result (make-parameter (process-request b64 "add-file")))
+  (debug 'ADD-FILE "RAW REQ:~n~a~n" (result))
   
   ;; Make sure we have all the needed keys
   (try/catch result hash?

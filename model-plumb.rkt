@@ -677,7 +677,13 @@
         ;; List the files in the code directory
         [(pass 'ERROR-LISTING-FILES)
          (parameterize ([current-directory (extract-filedir main-file)])
+           (debug 'COMPILE* "DIRECTORY-LIST:~n~a~n"
+                  (directory-list))
+           (debug 'COMPILE* "FILTERED:~n~a~n"
+                  (filter file-exists? (directory-list)))
+           
            (filter (λ (f)
+                     
                      (member (->sym (file-extension f))
                              '(occ inc module)))
                    (filter file-exists? (directory-list))))]

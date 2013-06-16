@@ -12,12 +12,18 @@
            ; [filename false]
            )
         
+    (define/public (is-saved?)
+      saved?)
+    (define/public (not-saved?)
+      (not saved?))
+    
     (define/public (save-yourself)
       (with-output-to-file (send this get-filename)
         #:exists 'replace
         (λ ()
           (printf "~a" 
-                  (send this get-text 0 'eof)))))
+                  (send this get-text 0 'eof))))
+      (set! saved? true))
           
     (define/override (save-file)
       (save-yourself))
@@ -89,12 +95,10 @@
           
           )))
     
-    (define/override (on-default-char e)
-        
-      (super on-default-char e))
     
     ;; Handle copy-paste of bodies of text.
     (define/augment (after-insert start len)
+      (set! saved? false)
       (define end (+ start len))
       (cond
         ;; When we have a colon, see if it is closing a proc, and 
@@ -122,6 +126,8 @@
                (loop (add1 line-end)))))]))
         
     (define/augment (after-delete start len)
+      (set! saved? false)
+      
       (let* ([line-start
               (send this line-start-position 
                     (send this position-line start))]
@@ -183,6 +189,7 @@
       (send this apply-syntax-highlighting 0 (send this last-position))
       
       (send this set-keymap keymap)
+      (set! saved? false)
       )
     
     ;; KEYMAP

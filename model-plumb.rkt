@@ -2,11 +2,11 @@
 
 (provide plumb%)
 
-(require racket/gui
-         net/url
-         net/dns
-         net/base64
-         json)
+(require ;racket/gui
+ net/url
+ net/dns
+ net/base64
+ json)
 
 (require "arduino-interaction.rkt"
          "util.rkt"
@@ -57,10 +57,45 @@
            [compilation-result false]
            [message "Parallel programming for makers."]
            [error-message ""]
- 
+           
            [first-compilation? true]
+           [first-check-or-compile? true]
            [examples-root false]
            )
+    
+    (define/public (set-first-check-or-compile? b)
+      (set! first-check-or-compile? b))
+    
+    (define/public (get-first-check-or-compile?)
+      first-check-or-compile?)
+    
+    ;; Grab the host and port from the server
+    (define/public (compilation-server-config)
+      (with-handlers ([exn:fail? 
+                       (λ (e)
+                         ;(alert-dialog (->string e) 'exit)
+                         (printf "EXITING: ~a~n" (->string e))
+                         (exit)
+                         )])
+        (define h 
+          (read
+           (get-pure-port
+            (string->url
+             "https://raw.github.com/concurrency/plumb/master/conf/conf-compilation-server.rkt"))))
+        (debug 'APP-LAUNCH "HOST CONFIG: ~a" h)
+        (cond
+          [(hash? h)
+           (let ([host (hash-ref h 'host)]
+                 [port (hash-ref h 'port)]
+                 [examples (hash-ref h 'examples)])
+             (debug 'APP-LAUNCH "HOST ~a PORT ~a" host port)
+             (send this set-remote-host host port)
+             (send this set-examples-root examples)
+             )]
+          [else (printf "~a~n" "Something went very wrong.")
+                (exit)
+                ])
+        ))
     
     ;; For debugging
     (define/public (get-config key)
@@ -256,6 +291,7 @@
     ;   ;;      ;;  ;;;;;;; ;;       ;; ;;; 
     ;   ;;      ;;  ;;;;;;; ;;;;;;;   ;;;;  
     
+    
     (define/public (get-temp-dir)
       temp-dir)
     
@@ -325,6 +361,10 @@
     
     
     (define/public (get-message) message)
+    (define/public (set-message m) 
+      (set! message m))
+      
+      
     (define/public (get-error-message) error-message)
     
     (define/public (get-compilation-result) compilation-result)
@@ -355,6 +395,10 @@
     ;; Need better checks down below
     
     (define/public (check-syntax)
+      (when (send this get-first-check-or-compile?)
+        (send this set-first-check-or-compile? false)
+        ;; This loads things from Bitbucket.
+        (load-error-regexps))
       (compile* 'check-syntax))
     
     
@@ -536,7 +580,10 @@
              [else
               (debug 'COMPILE "Code Size: ~a" (string-length
                                                (hash-ref v 'hex)))
-              (hash-ref v 'hex)]))])
+              ; Pass whole hash back 20130616
+              ;(hash-ref v 'hex)
+              v
+              ]))])
       (send p get))
     
     
@@ -652,7 +699,7 @@
         ;; FIXME: Where do I handle syntax errors?
         [(any? 'ERROR-WRITING-CODE)
          (let ([h (send p get)])
-           (debug 'COMPILE "Should be a string?: ~a" h)
+           (debug 'COMPILE "Should be a hash? [~a]: ~a" (hash? h) h)
            (cond
              [(and (hash? h) 
                    (equal? (hash-ref h 'responsetype) "ERROR"))
@@ -661,7 +708,8 @@
               h]
              [compiling?
               (send p message "Sending code to Arduino.")
-              (write-and-upload-code (send p get))]
+              (write-and-upload-code h)
+              h]
              [else h]))]
         
         [(hash? 'DEBUG)
@@ -676,15 +724,19 @@
                               "Help, I'm stuck in an Arduino factory!")])
              (case (hash-ref h 'responsetype)
                [("OK") 
+                (debug 'COMPILE* "Everything is OK.")
                 (set! error-message "")
-                (send p message (list-ref positives (random (length positives))))]
+                (send p message 
+                      (format "Everything checks out! ~a"
+                              (list-ref positives (random (length positives)))))]
                [else
+                (debug 'COMPILE* "Something is very wrong.")
                 ;; Do nothing; message set in previous sequence step.
                 'ERROR
                 (set! error-message (process-error-message h))
                 (send p message (format "GURU MEDITATION NUMBER ~a" (number->string (+ (random 2000000) 2000000) 16)))
                 ])
-           ))]
+             ))]
         
         ))
     

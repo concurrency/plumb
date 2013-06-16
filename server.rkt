@@ -39,6 +39,7 @@
   (try/catch resp success-response?
     (get-response 'ERROR)
     (parameterize ([current-directory (session-dir config session-id)])
+      (debug 'GUARDED-COMPILE "Working on: ~a" (extract-filename main-file))
       (unless (file-exists? (extract-filename main-file))
         (error (format "File does not exist: ~a" main-file)))))
   
@@ -118,6 +119,7 @@
           [filename (hash-ref (result) 'filename)]
           [session-id (hash-ref (result) 'sessionid)])
       (add-session-file config session-id filename code)
+      (debug 'ADD-FILE "Added: ~a~n" filename)
       (get-response 'OK-ADD-FILE)
       ))
   

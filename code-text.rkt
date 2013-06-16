@@ -7,14 +7,11 @@
 (define code%
   (class text%
     (field [saved? false]
-           [filename false]
+           ; [filename false]
            )
-    
-    (define/public (set-file f)
-      (set! filename f))
-    
+        
     (define/public (save-yourself)
-      (with-output-to-file filename
+      (with-output-to-file (send this get-filename)
         #:exists 'replace
         (λ ()
           (printf "~a" 

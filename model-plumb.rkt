@@ -502,7 +502,7 @@
     
     (define (add-file file-path)
       (define p (new process%  
-                     [context 'CHECK-SYNTAX]
+                     [context 'CLIENT-ADD-FILE]
                      [update (λ (msg)
                                (set! message (format "~a: ~a"
                                                      (send p get-context)
@@ -587,7 +587,7 @@
       (send p get))
     
     
-    (define (write-and-upload-code hex)
+    (define (write-and-upload-code hex-hash)
       (define CODE (make-parameter false))
       (define p (new process% 
                      [context 'WRITE-CODE]
@@ -617,7 +617,7 @@
            (debug (send p get-context) "Attempting to write code to temp directory.")
            (with-output-to-file (CODE)
              (thunk
-              (printf "~a" hex))))]
+              (printf "~a" (hash-ref hex-hash 'hex)))))]
         
         [(any? 'ERROR-UPLOAD-CODE)
          (debug (send p get-context) "Attempting to upload code with AVRDUDE.")

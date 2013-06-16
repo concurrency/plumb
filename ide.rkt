@@ -47,6 +47,9 @@
                  (send (current-text) get-filename)])
             (cond
               [current-file
+               ;; Save file before compiling.
+               
+               (send (current-text) save-file)
                (debug 'IDE-COMPILE "COMPILE FILE: ~a" current-file)
                ;; Set the main file
                (send hardware set-main-file current-file)
@@ -145,7 +148,7 @@
       (define (min-build)
         (define n (send tab-panel get-number))
         (send tab-panel append (format "draft ~a" n))
-        (vector-set! contents n (new code%))
+        (vector-set! contents n (new code% [ide this]))
         (send (last-text) setup-code)
         (send tab-panel set-selection n)
         (send canvas set-editor (last-text)))
@@ -158,6 +161,22 @@
          (build-text (file->string content))]
         ))
     
+    
+    (define/public (close-tab)
+      (let ([ndx (send tab-panel get-selection)])
+        (send tab-panel delete ndx)
+        (vector-set! contents ndx false)
+        (cond
+          [(zero? ndx) 
+           (send tab-panel set-selection ndx)
+           (send canvas set-editor (last-text))
+           ]
+          [else
+           (send tab-panel set-selection (sub1 ndx))
+           (send canvas set-editor (last-text))]
+        )))
+      
+      
     (define (last-text) (vector-ref contents 
                                     (sub1 (send tab-panel get-number))))
     

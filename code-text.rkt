@@ -3,9 +3,11 @@
 (provide code%)
 (require racket/gui
          framework)
+(require "debug.rkt")
 
 (define code%
   (class text%
+    (init-field ide)
     (field [saved? false]
            ; [filename false]
            )
@@ -17,7 +19,9 @@
           (printf "~a" 
                   (send this get-text 0 'eof)))))
           
-    
+    (define/override (save-file)
+      (save-yourself))
+      
     (define (hex->triplet str)
       (define (conv ls)
         (string->number (second ls) 16))
@@ -163,6 +167,14 @@
     (define/public (setup-code)
       (define delta (new style-delta%))
       (define keymap (keymap:get-editor))
+      (keymap:setup-global keymap)
+      
+      (send keymap map-function "m:w" "close-tab")
+      (send keymap map-function "d:w" "close-tab")
+      (send keymap add-function "close-tab"
+            (λ (o e)
+              (debug 'KEYMAP "close-tab")
+              (send ide close-tab)))
       
       (send delta set-family 'modern)
       (send delta set-weight-on 'bold)

@@ -5,10 +5,13 @@
          framework)
 (require "debug.rkt")
 
+(define FONT-SIZE 16)
+
 (define code%
   (class text%
     (init-field ide)
     (field [saved? false]
+           [keymap false]
            ; [filename false]
            )
         
@@ -16,6 +19,8 @@
       saved?)
     (define/public (not-saved?)
       (not saved?))
+    (define/public (set-saved!)
+      (set! saved? true))
     
     (define/public (save-yourself)
       (with-output-to-file (send this get-filename)
@@ -56,8 +61,7 @@
     (define (reapply-syntax start end)
       (define txt (send this get-text start end))
       (define delta (new style-delta%))
-      ;; Clear all color.
-      
+      (send delta set-delta 'change-size FONT-SIZE)
       (send this change-style delta start (- end start) #f)
       (apply-syntax-highlighting start end))
     
@@ -70,7 +74,7 @@
     
     (define (auto-indent? start end)
       (define indent false)
-      (for ([p '("PAR" "SEQ" "IF" "ALT" "PRI ALT" "PROC")])
+      (for ([p '("PAR" "SEQ" "IF" "ALT" "PRI ALT" "PROC" "WHILE")])
         (when (send this find-string p 'forward start end)
           (set! indent true)))
       indent)
@@ -139,11 +143,9 @@
       (define txt (send this get-text start end))
       ;; (printf "ASH: ~s~n" txt)
       (define delta (new style-delta%))
-      
+      (send delta set-delta 'change-size FONT-SIZE)
       (send delta set-family 'modern)
       (send delta set-delta-foreground "Black")
-      ;(send delta set-weight-on 'bold)
-      ;(send delta set-size-add 4)
       (send this change-style delta start end #f)
       
       ;; Hightlight Keywords
@@ -171,9 +173,15 @@
           (send this change-style delta (+ start (car loc)) (+ start (cdr loc)) #f))))
     
     (define/public (setup-code)
+      
+      
       (define delta (new style-delta%))
-      (define keymap (keymap:get-editor))
-      (keymap:setup-global keymap)
+      (define k (new keymap:aug-keymap%))
+      (define tmp (new keymap:aug-keymap%))
+      (send k chain-to-keymap (keymap:get-global) false)
+      (send k chain-to-keymap (keymap:get-editor) false)
+      
+      (set! keymap k)
       
       (send keymap map-function "m:w" "close-tab")
       (send keymap map-function "d:w" "close-tab")
@@ -182,14 +190,18 @@
               (debug 'KEYMAP "close-tab")
               (send ide close-tab)))
       
+      (send this set-keymap keymap)
+      
       (send delta set-family 'modern)
-      (send delta set-weight-on 'bold)
-      (send delta set-size-add 4)
+      ;(send delta set-weight-on 'bold)
+      ;(send delta set-size-add 4)
+      (send delta set-delta 'change-size FONT-SIZE)
       (send this change-style delta 0 (send this last-position) #f)
       (send this apply-syntax-highlighting 0 (send this last-position))
       
-      (send this set-keymap keymap)
+      ;(send this set-keymap keymap)
       (set! saved? false)
+      (send this set-max-undo-history 'forever)
       )
     
     ;; KEYMAP
@@ -203,5 +215,6 @@
     (send keymap map-function "middlebutton" "paste-x-selection")
     |# 
     
-
-    (super-new)))
+    (super-new)
+    
+    ))

@@ -5,7 +5,10 @@
          framework)
 (require "debug.rkt")
 
-(define FONT-SIZE 16)
+(define FONT-SIZE 
+  (case (system-type)
+    [(macosx) 16]
+    [(win windows) 12]))
 
 (define code%
   (class (text:line-numbers-mixin 
@@ -195,37 +198,43 @@
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (+ start (car loc)) (+ start (cdr loc)) #f))))
     
+    (define-syntax-rule (mapfun key name)
+      (case (system-type)
+        [(macosx) 
+         (send keymap map-function (format "d:~a" key) name)]
+        [(win windows)
+         (send keymap map-function (format "c:~a" key) name)]))
+    
     (define/public (setup-code)
       
       
       (define delta (new style-delta%))
       (define k (new keymap:aug-keymap%))
-      (define tmp (new keymap:aug-keymap%))
-      (send k chain-to-keymap (keymap:get-global) false)
-      (send k chain-to-keymap (keymap:get-editor) false)
       
       (set! keymap k)
       
-      (send keymap map-function "m:w" "close-tab")
-      (send keymap map-function "d:w" "close-tab")
+      (mapfun "w" "close-tab")
       (send keymap add-function "close-tab"
             (λ (o e)
               (debug 'KEYMAP "close-tab")
               (send tab-panel close-tab)))
       
-      (send keymap map-function "m:t" "new-tab")
-      (send keymap map-function "d:t" "new-tab")
-      (send keymap map-function "m:n" "new-tab")
-      (send keymap map-function "d:n" "new-tab")
+      (mapfun "t" "new-tab")
+      (mapfun "n" "new-tab")
       (send keymap add-function "new-tab"
             (λ (o e) (send tab-panel new-document)))
       
-      (send keymap map-function "m:s" "save")
-      (send keymap map-function "d:s" "save")
+      (mapfun "s" "save")
       (send keymap add-function "save"
             (λ (o e) (send tab-panel save)))
       
       (send this set-keymap keymap)
+      
+      ;; Send this last
+      
+      (define tmp (new keymap:aug-keymap%))
+      (send k chain-to-keymap (keymap:get-global) false)
+      (send k chain-to-keymap (keymap:get-editor) false)
       
       (send delta set-family 'modern)
       ;(send delta set-weight-on 'bold)

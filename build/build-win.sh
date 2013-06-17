@@ -10,6 +10,7 @@ DEST=$BUILD/$DDNAME-$DATE
 RACO=/c/Program\ Files/Racket/raco.exe
 ZIP=/c/Program\ Files/7-Zip/7z.exe
 PSCP=~/My\ Documents/GitHub/pscp.exe
+SOURCE=ide.rkt
 
 pushd "$SRC"
   rm -rf "$BUILD"
@@ -28,7 +29,7 @@ popd
 pushd "$BUILD"
   echo   Build Executable
   cp "$SRC"/build/arduino.ico "$BUILD"
-  "$RACO" exe --ico arduino.ico -o "$DDNAME.exe" "$SRC/plumb-gui.rkt"
+  "$RACO" exe --ico arduino.ico -o "$DDNAME.exe" "$SRC/$SOURCE"
   rm arduino.ico
   echo   Make It Distributable
   "$RACO" distribute "$DEST" "$DDNAME.exe"

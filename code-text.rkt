@@ -213,6 +213,18 @@
               (debug 'KEYMAP "close-tab")
               (send tab-panel close-tab)))
       
+      (send keymap map-function "m:t" "new-tab")
+      (send keymap map-function "d:t" "new-tab")
+      (send keymap map-function "m:n" "new-tab")
+      (send keymap map-function "d:n" "new-tab")
+      (send keymap add-function "new-tab"
+            (λ (o e) (send tab-panel new-document)))
+      
+      (send keymap map-function "m:s" "save")
+      (send keymap map-function "d:s" "save")
+      (send keymap add-function "save"
+            (λ (o e) (send tab-panel save)))
+      
       (send this set-keymap keymap)
       
       (send delta set-family 'modern)

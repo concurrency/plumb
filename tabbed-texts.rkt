@@ -77,11 +77,14 @@
     ;; ---------------------------------------------------------------------------
     (define (build-text content #:tab-id [tab-id false])
       (define (min-build)
-        (unless tab-id
-          (set! tab-id (format "unsaved ~a" tab-count)))
         (define n (send tab-panel get-number))
         
+        (unless tab-id
+          (set! tab-id (format "unsaved ~a" tab-count)))
+        
+        (send tab-panel set-label tab-id)
         (send tab-panel append tab-id)
+        
         (hash-set! contents 
                    (->sym (get-label n))
                    (new code%
@@ -90,16 +93,19 @@
         (send (last-text) setup-code)
         (send tab-panel set-selection n)
         (debug 'IDE "~a~n" (last-text))
-        (send canvas set-editor (last-text)))
+        (send canvas set-editor (last-text))
+        )
       
       (set! tab-count (add1 tab-count))
       (cond
-        [(not content)  (min-build)] 
+        [(not content)  (min-build)
+                        (send (last-text) set-saved!)] 
         [(string? content)
          (min-build)
          (send (last-text) insert content)]
         [(path? content)
-         (build-text (file->string content) #:tab-id (~a tab-id))]
+         (build-text (file->string content) #:tab-id (~a tab-id))
+         (send (last-text) set-saved!)]
         ))
     
     (define (get-label n)

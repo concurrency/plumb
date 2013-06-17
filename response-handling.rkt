@@ -25,8 +25,7 @@
   (set/catch result string?
     (get-response 'ERROR-B64-DECODE)
     (format "~a" 
-            (base64-decode 
-             (string->bytes/utf-8 (result)))))
+            (b64-decode (result))))
   
   ;; Read JSON
   (set/catch result string?
@@ -57,8 +56,7 @@
   (set/catch result string?
     (get-response 'ERROR-B64-DECODE)
     (let ([b64 (format "~a" 
-                       (base64-decode 
-                        (string->bytes/utf-8 (result))))])
+                       (b64-decode (result)))])
       (debug 'PROCESS-RESPONSE "b64:~n~a~n" b64)
       b64))
   

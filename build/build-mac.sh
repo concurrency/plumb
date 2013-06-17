@@ -6,6 +6,7 @@ ICON=arduino
 VOLICON=concurrencycc-logo
 BUILD=build-mac
 DMGNAME=${BASE}-${DATE}
+SOURCE=ide.rkt
 
 function announce () {
   echo $1
@@ -19,7 +20,7 @@ popd
 
 pushd ../  
   announce "Compiling ${BASE}"
-  raco exe --gui -o ${BASE} plumb-gui.rkt
+  raco exe --gui -o ${BASE} ${SOURCE}
   announce "Done compiling."
   mkdir -p /tmp/${BASE}-dist
   announce "Prepping distribution."

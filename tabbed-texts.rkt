@@ -19,11 +19,11 @@
             [sure? true])
         
         (debug 'IDE "Content not saved? : ~a" 
-               (send (hash-ref contents (->sym (send tab-panel get-item-label ndx)))
+               (send (hash-ref contents (->sym (get-label ndx)))
                          not-saved?))
         
         ;; Handle unsaved tabs
-        (when (send (hash-ref contents (->sym (send tab-panel get-item-label ndx)))
+        (when (send (hash-ref contents (->sym (get-label ndx)))
                          not-saved?)
           (let ([d
                  (new dialog%
@@ -31,7 +31,7 @@
                       [parent parent])])
             (new message% 
                  [label (format "~a is unsaved." 
-                                (->sym (send tab-panel get-item-label ndx)))]
+                                (->sym (get-label ndx)))]
                  [parent d])
             (define h (new horizontal-panel% [parent d]))
             (new button%
@@ -52,7 +52,7 @@
         ;; Invalidate the editor; we use labels as keys
         (hash-set! contents
                    (->sym
-                    (send tab-panel get-item-label ndx))
+                    (get-label ndx))
                    false)
         ;; Delete a tab
         (send tab-panel delete ndx)
@@ -64,7 +64,7 @@
            ;; Now, get the next selection
            (let* ([next (send tab-panel get-selection)]
                   [next-tag (->sym
-                             (send tab-panel get-item-label next))])
+                             (get-label next))])
              (debug 'CLOSE-TAB "'next' is ~a" next)
              (debug 'CLOSE-TAB "'next-tag' is ~a" next-tag)
              ;; Update to the visible editor
@@ -83,8 +83,10 @@
         
         (send tab-panel append tab-id)
         (hash-set! contents 
-                   (->sym (send tab-panel get-item-label n))
-                   (new code% [ide this]))
+                   (->sym (get-label n))
+                   (new code%
+                        [tab-panel this]
+                        [ide parent]))
         (send (last-text) setup-code)
         (send tab-panel set-selection n)
         (debug 'IDE "~a~n" (last-text))
@@ -100,15 +102,40 @@
          (build-text (file->string content) #:tab-id (~a tab-id))]
         ))
     
+    (define (get-label n)
+      (regexp-replace #px"^• " (send tab-panel get-item-label n) ""))
+    
+    (define/public (show-dirty)
+      (let ([current-label 
+             (send tab-panel
+                               get-item-label 
+                               (send tab-panel get-selection))])
+        (unless (regexp-match #px"^•" current-label)
+          (send tab-panel
+                set-item-label
+                (send tab-panel get-selection)
+                (format "• ~a" (send tab-panel
+                                     get-item-label 
+                                     (send tab-panel get-selection)))
+                ))))
+    
+    (define/public (show-clean)
+      (send tab-panel 
+            set-item-label
+            (send tab-panel get-selection)
+            (regexp-replace "^• "
+                                    (send tab-panel
+                                          get-item-label 
+                                          (send tab-panel get-selection))
+                                    "")))
     
     (define (last-text) 
       (hash-ref contents 
                 (->sym
-                 (send tab-panel get-item-label 
-                       (sub1 (send tab-panel get-number))))))
+                 (get-label (sub1 (send tab-panel get-number))))))
     
     (define (current-text)
-      (hash-ref contents (->sym (send tab-panel get-item-label (send tab-panel get-selection)))))
+      (hash-ref contents (->sym (get-label (send tab-panel get-selection)))))
     
     (define/public (get-filename)
       (send (current-text) get-filename))
@@ -133,7 +160,7 @@
                         (current-text))
              ;; Invalidate the old
              (hash-set! contents
-                        (->sym (send tab-panel get-item-label (send tab-panel get-selection)))
+                        (->sym (get-label (send tab-panel get-selection)))
                         false)
              ;; Update the label, so everything works on the new
              (send tab-panel set-item-label 
@@ -167,7 +194,9 @@
         (debug 'TABBED-TEXT "open-file tab name: ~a" fname)
         ;(send tab-panel set-item-label (send tab-panel get-selection) fname)
         (hash-set! contents (->sym (format "~a" fname)) (last-text))
+        (debug 'OPEN-FILE "Setting ~a as saved." fname)
         (send (last-text) set-saved!)
+        
         ))
       
     

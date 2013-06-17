@@ -30,8 +30,14 @@
   (format "~a" o))
 
 (define (b64-decode str)
-  (format "~a" 
-          (base64-decode (string->bytes/locale str))))
+  (~a (base64-decode 
+       (string->bytes/locale
+        (regexp-replace* #px"_" (~a str) "/")))))
+      
+(define (b64-encode str)
+  (regexp-replace* #px"/"
+                  (base64-encode (string->bytes/utf-8 str))
+                  "_"))
 
 (define (read-url str)
   (read-all (get-pure-port 
@@ -123,13 +129,16 @@
 
 (define make-server-url 
   (λ args
-    (string->url
-     (format "http://~a:~a~a"
-             (first args)
-             (second args)
-             (apply string-append
-                    (map (λ (p) (format "/~a" p)) 
-                         (rest (rest args))))))))
+    (let* ([url-str 
+            (format "http://~a:~a~a"
+                                    (first args)
+                                    (second args)
+                                    (apply string-append
+                                           (map (λ (p) (format "/~a" p)) 
+                                                (rest (rest args)))))]
+           [the-url (string->url url-str)])
+      (debug 'MAKE-SERVER-URL "url: ~a~n" url-str)
+      the-url)))
 
 (define (filter-hash hash key)
   (let ([c (hash-copy hash)])

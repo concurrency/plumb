@@ -3,7 +3,8 @@
 (require web-server/http
          net/base64
          json)
-(require "util.rkt")
+(require "util.rkt"
+         "debug.rkt")
 
 (provide (all-defined-out))
 
@@ -48,19 +49,25 @@
   ;; Transform the bytes to a string
   (set/catch result port?
     (get-response 'ERROR-BYTES-TO-STRING)
-    (read-all (result)))
+    (let ([str (read-all (result))])
+      (debug 'PROCESS-RESPONSE "read-all:~n~a~n" str)
+      str))
   
   ;; Base64 decode
   (set/catch result string?
     (get-response 'ERROR-B64-DECODE)
-    (format "~a" 
-          (base64-decode 
-           (string->bytes/utf-8 (result)))))
+    (let ([b64 (format "~a" 
+                       (base64-decode 
+                        (string->bytes/utf-8 (result))))])
+      (debug 'PROCESS-RESPONSE "b64:~n~a~n" b64)
+      b64))
   
   ;; Read JSON
   (set/catch result string?
     (get-response 'ERROR-READ-JSON)
-    (read-json (open-input-string (result))))
+    (let ([json (read-json (open-input-string (result)))])
+      (debug 'PROCESS-RESPONSE "json:~n~a~n" json)
+      json))
   
   (result))
 
@@ -74,9 +81,8 @@
   (response/xexpr #:code (if (success-response? json)
                              200 400)
                   (bytes->string/utf-8
-                   (base64-encode
-                    (string->bytes/utf-8
-                     (jsexpr->string json))))))
+                   (b64-encode
+                    (jsexpr->string json)))))
 
 
   

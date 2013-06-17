@@ -8,8 +8,9 @@
 (define FONT-SIZE 16)
 
 (define code%
-  (class text%
-    (init-field ide)
+  (class (text:line-numbers-mixin 
+          (editor:standard-style-list-mixin text%))
+    (init-field tab-panel ide)
     (field [saved? false]
            [keymap false]
            ; [filename false]
@@ -17,10 +18,17 @@
         
     (define/public (is-saved?)
       saved?)
+    
     (define/public (not-saved?)
       (not saved?))
+    
     (define/public (set-saved!)
+      (send tab-panel show-clean)
       (set! saved? true))
+    
+    (define/public (set-dirty!)
+      (send tab-panel show-dirty)
+      (set! saved? false))
     
     (define/public (save-yourself)
       (with-output-to-file (send this get-filename)
@@ -28,7 +36,7 @@
         (λ ()
           (printf "~a" 
                   (send this get-text 0 'eof))))
-      (set! saved? true))
+      (set-saved!))
           
     (define/override (save-file)
       (save-yourself))
@@ -102,7 +110,7 @@
     
     ;; Handle copy-paste of bodies of text.
     (define/augment (after-insert start len)
-      (set! saved? false)
+      (set-dirty!)
       (define end (+ start len))
       (cond
         ;; When we have a colon, see if it is closing a proc, and 
@@ -130,7 +138,7 @@
                (loop (add1 line-end)))))]))
         
     (define/augment (after-delete start len)
-      (set! saved? false)
+      (set-dirty!)
       
       (let* ([line-start
               (send this line-start-position 
@@ -188,7 +196,7 @@
       (send keymap add-function "close-tab"
             (λ (o e)
               (debug 'KEYMAP "close-tab")
-              (send ide close-tab)))
+              (send tab-panel close-tab)))
       
       (send this set-keymap keymap)
       
@@ -200,7 +208,10 @@
       (send this apply-syntax-highlighting 0 (send this last-position))
       
       ;(send this set-keymap keymap)
-      (set! saved? false)
+      (set-dirty!)
+      
+      (send this show-line-numbers! true)
+      
       (send this set-max-undo-history 'forever)
       )
     

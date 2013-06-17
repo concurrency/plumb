@@ -10,7 +10,7 @@
          "mvc.rkt"
          )
 
-
+(define NUMBER-OF-ERROR-LINES 3)
 
 (define ide%
   (class view%
@@ -18,6 +18,7 @@
     (field [f false]
            [menu false]
            [ribbon false]
+           [err-msg-text false]
            [tabbed-texts false]
            [canvas false]
            [contents (make-vector 255 false)]
@@ -224,6 +225,17 @@
       (set! tabbed-texts (new tabbed-texts% 
                               [parent f]))
       (build-ribbon f)
+      
+      (define err-msg-canvas (new editor-canvas%
+                                  (parent f)
+                                  (label "")
+                                  (stretchable-width true)
+                                  (stretchable-height false)
+                                  (line-count NUMBER-OF-ERROR-LINES)
+                                  ))
+      (set! err-msg-text (new text% (auto-wrap true)))
+      (send err-msg-canvas set-editor err-msg-text)
+      
       (build-menu)
       
       
@@ -256,6 +268,9 @@
       ;; On update, update the status text
       (send f set-status-text (send hardware get-message))
       ;; Clear the last status message
+      (let ([err-msg (send hardware get-error-message)])
+        (when (string? err-msg)
+          (send err-msg-text insert err-msg)))
       )
     
     (super-new)

@@ -532,10 +532,12 @@
         
         ;; Base64 encode the JSON string
         [(string? 'ERROR-B64-ENCODE)
-         (base64-encode (string->bytes/utf-8 (send p get)))]
+         (b64-encode (send p get))]
+                         
         
         ;; Do the GET
         [(bytes? 'ERROR-HTTP-GET)
+         (debug 'ADD-FILE "B64:~n~a~n" (send p get))
          (get-pure-port
           (make-server-url host port "add-file" (send p get)))]
         
@@ -543,7 +545,9 @@
         [(port? 'ERROR-PROCESS-RESPONSE)
          (process-response (send p get))]
         
-        ))
+        )
+      (send p get)
+      )
     
     
     (define (compile-main-file)
@@ -643,6 +647,11 @@
       (define FIXME (λ args true))
       (define compiling? (equal? flag 'compile))
       
+      (define (occ-filter f)
+        (and (file-exists? f)
+             (member (->sym (file-extension f))
+                             '(occ inc module))))
+      
       (define p (new process% 
                      [context 'COMPILE]
                      [update (λ (msg)
@@ -680,22 +689,20 @@
            (debug 'COMPILE* "DIRECTORY-LIST:~n~a~n"
                   (directory-list))
            (debug 'COMPILE* "FILTERED:~n~a~n"
-                  (filter file-exists? (directory-list)))
+                  (filter occ-filter (directory-list)))
            
-           (filter (λ (f)
-                     
-                     (member (->sym (file-extension f))
-                             '(occ inc module)))
-                   (filter file-exists? (directory-list))))]
+           (filter occ-filter (directory-list)))]
         
         ;; Add them to the server
         [(list? 'ERROR-ADDING-FILES)
          (debug 'COMPILE "Adding files: ~a" (send p get))
          (send p message "Uploading code.")
          (parameterize ([current-directory (extract-filedir main-file)])
-           (add-file main-file)
            (for ([f (send p get)])
-             (add-file f)))
+             (let ([result (add-file f)])
+               (debug 'ADD-FILE "add-file server response:~n~a~n"  result)
+               (sleep 0.5)
+               )))
          NO-CHANGE]
         
         ;; Tell the server to compile

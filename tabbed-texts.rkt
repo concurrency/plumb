@@ -129,6 +129,10 @@
                                           (send tab-panel get-selection))
                                     "")))
     
+    (define/public (highlight-line n)
+      (send (current-text) highlight-line n))
+            
+    
     (define (last-text) 
       (hash-ref contents 
                 (->sym

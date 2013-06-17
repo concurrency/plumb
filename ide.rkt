@@ -270,8 +270,9 @@
       ;; Clear the last status message
       (let ([err-msg (send hardware get-error-message)])
         (when (string? err-msg)
-          (send err-msg-text insert err-msg)))
-      )
+          (send err-msg-text insert err-msg)
+          (send tabbed-texts highlight-line (send hardware get-error-line))
+          )))
     
     (super-new)
     ))

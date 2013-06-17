@@ -9,7 +9,8 @@
 
 (define code%
   (class (text:line-numbers-mixin 
-          (editor:standard-style-list-mixin text%))
+          (editor:standard-style-list-mixin
+           (editor:basic-mixin text%)))
     (init-field tab-panel ide)
     (field [saved? false]
            [keymap false]
@@ -107,6 +108,20 @@
           
           )))
     
+    
+    ;; This doesn't work.
+    (define/public (highlight-line n)
+      (define loc 0)
+      (for ([i (in-range (sub1 n))])
+        (set! loc (+ loc (send this find-newline 'forward loc))))
+      
+      (let* ([line-start
+                (send this line-start-position 
+                      (send this position-line loc))]
+               [line-end (send this find-newline 'forward line-start)])
+        'NeedToGetMixinRightFIXME
+        ;;(send this highlight-range line-start line-end yellow)
+        ))
     
     ;; Handle copy-paste of bodies of text.
     (define/augment (after-insert start len)

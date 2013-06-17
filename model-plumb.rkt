@@ -57,11 +57,14 @@
            [compilation-result false]
            [message "Parallel programming for makers."]
            [error-message ""]
+           [error-line -1]
            
            [first-compilation? true]
            [first-check-or-compile? true]
            [examples-root false]
            )
+    
+    (define/public (get-error-line) error-line)
     
     (define/public (set-first-check-or-compile? b)
       (set! first-check-or-compile? b))
@@ -747,7 +750,9 @@
                 (debug 'COMPILE* "Something is very wrong.")
                 ;; Do nothing; message set in previous sequence step.
                 'ERROR
-                (set! error-message (process-error-message h))
+                (let ([line-and-msg (process-error-message h)])
+                  (set! error-message (second line-and-msg))
+                  (set! error-line (first line-and-msg)))
                 (send p message (format "GURU MEDITATION NUMBER ~a" (number->string (+ (random 2000000) 2000000) 16)))
                 ])
              ))]

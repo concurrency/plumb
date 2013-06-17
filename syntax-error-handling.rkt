@@ -23,7 +23,7 @@
            (quote subs)
            (string-append BASE str)
            (append BASE-PARTS (list (quote ids) ...))))
-           
+
 (error-regexps
  (list 
   
@@ -42,12 +42,12 @@
 
 (define (load-error-regexps)
   (define gh (new github%
-                    [owner "jadudm"]
-                    [repos "plumbing-syntax-errors"]))
+                  [owner "jadudm"]
+                  [repos "plumbing-syntax-errors"]))
   (define gh-read
     (read (open-input-string
            (send gh get-content "errors.rkt"))))
-
+  
   (debug 'SYNTAX-ERROR-HANDLING "~a~n" gh-read)
   
   (let ([pats
@@ -62,8 +62,8 @@
     (debug 'SYNTAX-ERROR-HANDLING "~a" pats)
     (error-regexps pats)))
 
-    
-  
+
+
 #|
 #hasheq((message . Syntax error.) (code . ERROR-SYNTAX) (responsetype . ERROR) (errormessage . (1 error found in source
 :
@@ -103,17 +103,19 @@ occbuild: Command failed: avr-occ21 -t2 -V -etc -w -y -znd -znec -udo -zncc -ini
     (let ([format-string (string-append "[~a, line ~a] " (err-pat-msg ep))]
           [field-order (err-pat-subs ep)]
           [match (regexp-match (err-pat-pattern ep) line)])
-      (apply format 
-             `(,format-string
-               ,@(append
-                 (list (err-pat-name ep)
-                       (extract-part 'line-number match ep))
-                 (map (λ (id)
-                        (extract-part id match ep))
-                      (err-pat-subs ep))
-                 )))
+      (list 
+       (string->number (extract-part 'line-number match ep))
+       (apply format 
+              `(,format-string
+                ,@(append
+                   (list (err-pat-name ep)
+                         (extract-part 'line-number match ep))
+                   (map (λ (id)
+                          (extract-part id match ep))
+                        (err-pat-subs ep))
+                   ))))
       )))
-    
+
 (define (process-error-message h)
   (define response (make-parameter false))
   (when (hash-has-key? h 'errormessage)

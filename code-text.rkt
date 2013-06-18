@@ -19,7 +19,7 @@
            [keymap false]
            ; [filename false]
            )
-        
+    
     (define/public (is-saved?)
       saved?)
     
@@ -41,10 +41,10 @@
           (printf "~a" 
                   (send this get-text 0 'eof))))
       (set-saved!))
-          
+    
     (define/override (save-file)
       (save-yourself))
-      
+    
     (define (hex->triplet str)
       (define (conv ls)
         (string->number (second ls) 16))
@@ -119,9 +119,9 @@
         (set! loc (+ loc (send this find-newline 'forward loc))))
       
       (let* ([line-start
-                (send this line-start-position 
-                      (send this position-line loc))]
-               [line-end (send this find-newline 'forward line-start)])
+              (send this line-start-position 
+                    (send this position-line loc))]
+             [line-end (send this find-newline 'forward line-start)])
         'NeedToGetMixinRightFIXME
         ;;(send this highlight-range line-start line-end yellow)
         ))
@@ -154,7 +154,7 @@
                (insert-spaces start)
                (reapply-syntax line-start line-end)
                (loop (add1 line-end)))))]))
-        
+    
     (define/augment (after-delete start len)
       (set-dirty!)
       
@@ -198,43 +198,48 @@
         (for ([loc (regexp-match-positions* pat txt)])
           (send this change-style delta (+ start (car loc)) (+ start (cdr loc)) #f))))
     
-    (define-syntax-rule (mapfun key name)
-      (case (system-type)
-        [(macosx) 
-         (send keymap map-function (format "d:~a" key) name)]
-        [(win windows)
-         (send keymap map-function (format "c:~a" key) name)]))
     
-    (define/public (setup-code)
-      
-      
-      (define delta (new style-delta%))
+    
+    (define (setup-keymap)
       (define k (new keymap:aug-keymap%))
       
-      (set! keymap k)
+      (define-syntax-rule (mapfun key name)
+        (case (system-type)
+          [(macosx) 
+           (send k map-function (format "d:~a" key) name)]
+          [(win windows)
+           (send k map-function (format "c:~a" key) name)]))
       
       (mapfun "w" "close-tab")
-      (send keymap add-function "close-tab"
+      (send k add-function "close-tab"
             (λ (o e)
               (debug 'KEYMAP "close-tab")
               (send tab-panel close-tab)))
       
       (mapfun "t" "new-tab")
       (mapfun "n" "new-tab")
-      (send keymap add-function "new-tab"
+      (send k add-function "new-tab"
             (λ (o e) (send tab-panel new-document)))
       
       (mapfun "s" "save")
-      (send keymap add-function "save"
+      (send k add-function "save"
             (λ (o e) (send tab-panel save)))
       
-      (send this set-keymap keymap)
+      
       
       ;; Send this last
-      
-      (define tmp (new keymap:aug-keymap%))
       (send k chain-to-keymap (keymap:get-global) false)
       (send k chain-to-keymap (keymap:get-editor) false)
+      
+      k)
+    
+    (define/public (setup-code)
+      
+      
+      (define delta (new style-delta%))
+      
+      
+      (send this set-keymap (setup-keymap))
       
       (send delta set-family 'modern)
       ;(send delta set-weight-on 'bold)
@@ -251,16 +256,6 @@
       (send this set-max-undo-history 'forever)
       )
     
-    ;; KEYMAP
-    ; OR
-    #|
-    (define keymap (new keymap%))
-    (add-text-keymap-functions keymap) 
-    (send keymap map-function "c:x" "cut-clipboard")
-    (send keymap map-function "c:c" "copy-clipboard")
-    (send keymap map-function "c:v" "paste-clipboard")
-    (send keymap map-function "middlebutton" "paste-x-selection")
-    |# 
     
     (super-new)
     

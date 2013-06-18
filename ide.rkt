@@ -134,12 +134,15 @@
       
       ;; Need to update the model with
       ;; the current board, port
-      (send hardware set-board-type 
-            (send board get-string 
-                  (send board get-selection)))
-      (send hardware set-arduino-port 
-            (send serial-port get-string 
-                  (send serial-port get-selection)))
+      (unless (zero? (send board get-number))
+        (send hardware set-board-type 
+              (send board get-string 
+                    (send board get-selection))))
+      
+      (unless (zero? (send serial-port get-number))
+        (send hardware set-arduino-port 
+              (send serial-port get-string 
+                    (send serial-port get-selection))))
       )
     
     
@@ -156,33 +159,41 @@
                         [label "&File"]
                         [parent menu-bar]))
       (new menu-item%
-           [label "&New"]
+           [label "&New Tab"]
            [parent file]
            [callback (λ (m e)
                        (send tabbed-texts new-document))])
       
       (new menu-item%
-           [label "Open"]
+           [label "Open in New Tab"]
            [parent file]
            [callback 
             (λ (m e)
-              (let ([f (get-file "Open file")])
+              (let ([f (get-file "Open File")])
                 (when (and f (file-exists? f))
                   (send tabbed-texts open-file f)
                   )))])
       
       (new menu-item%
-           [label "Save"]
+           [label "Save Tab"]
            [parent file]
            [callback (λ (m e)
                        (send tabbed-texts save))])
       
       (new menu-item%
-           [label "Save As"]
+           [label "Save Tab As"]
            [parent file]
            [callback 
             (λ (m e)
               (send tabbed-texts save-as))]
+           )
+      
+      (new menu-item%
+           [label "Close Tab"]
+           [parent file]
+           [callback 
+            (λ (m e)
+              (send tabbed-texts close-tab))]
            )
       
       ;; EXAMPLES MENU

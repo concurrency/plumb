@@ -2,7 +2,8 @@
 
 (provide tabbed-texts%)
 
-(require racket/gui)
+(require racket/gui
+         mrlib/path-dialog)
 (require "debug.rkt"
          "code-text.rkt")
 
@@ -20,11 +21,11 @@
         
         (debug 'IDE "Content not saved? : ~a" 
                (send (hash-ref contents (->sym (get-label ndx)))
-                         not-saved?))
+                     not-saved?))
         
         ;; Handle unsaved tabs
         (when (send (hash-ref contents (->sym (get-label ndx)))
-                         not-saved?)
+                    not-saved?)
           (let ([d
                  (new dialog%
                       [label "Are you sure?"]
@@ -114,8 +115,8 @@
     (define/public (show-dirty)
       (let ([current-label 
              (send tab-panel
-                               get-item-label 
-                               (send tab-panel get-selection))])
+                   get-item-label 
+                   (send tab-panel get-selection))])
         (unless (regexp-match #px"^•" current-label)
           (send tab-panel
                 set-item-label
@@ -130,14 +131,14 @@
             set-item-label
             (send tab-panel get-selection)
             (regexp-replace "^• "
-                                    (send tab-panel
-                                          get-item-label 
-                                          (send tab-panel get-selection))
-                                    "")))
+                            (send tab-panel
+                                  get-item-label 
+                                  (send tab-panel get-selection))
+                            "")))
     
     (define/public (highlight-line n)
       (send (current-text) highlight-line n))
-            
+    
     
     (define (last-text) 
       (hash-ref contents 
@@ -151,7 +152,8 @@
       (send (current-text) get-filename))
     
     (define/public (save-file)
-      (send (current-text) save-file))
+      ;(send (current-text) save-file)
+      (save))
     
     (define/public (save)
       (cond
@@ -159,9 +161,9 @@
          (send (current-text) save-file)]
         [else
          (let* ([f (put-file "Save file as...")]
-               [filename (let-values ([(base fname dir?)
-                                       (split-path f)])
-                           (format "~a" fname))])
+                [filename (let-values ([(base fname dir?)
+                                        (split-path f)])
+                            (format "~a" fname))])
            (when f
              ;; Copy the existing editor to a 
              ;; new name in the contents hash
@@ -197,7 +199,7 @@
     
     (define/public (open-file f)
       (let-values ([(base fname dir?)
-                          (split-path f)])
+                    (split-path f)])
         (debug 'TABBED-TEXT "open-file with ~a" f)
         (build-text f #:tab-id fname)
         (send (last-text) set-filename f)
@@ -208,7 +210,7 @@
         (send (last-text) set-saved!)
         
         ))
-      
+    
     
     (define/public (new-document #:content [content false])
       (build-text content))

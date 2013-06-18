@@ -7,6 +7,7 @@ VOLICON=concurrencycc-logo
 BUILD=build-mac
 DMGNAME=${BASE}-${DATE}
 SOURCE=ide.rkt
+#SOURCE=plumb-gui.rkt
 
 function announce () {
   echo $1
@@ -79,7 +80,7 @@ pushd ../${BUILD}
   rm -rf ${APP}
   if [[ $1 = "upload" ]]; then
     if [[ -f ~/.ssh/small-imac-berea ]]; then
-      KEY=~/.ssh/small-imac/berea
+      KEY=~/.ssh/small-imac-berea
     fi
     if [[ -f ~/.ssh/big-mac-berea ]]; then
       KEY=~/.ssh/big-mac-berea

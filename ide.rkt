@@ -127,7 +127,6 @@
                                        (send hardware enumerate-arduinos)
                                        (let ([arduinos
                                               (send hardware get-arduino-ports)])
-                                         (printf "A: ~a~n" arduinos)
                                          (map (λ (i)
                                                 (send serial-port append i))
                                               arduinos)))]))

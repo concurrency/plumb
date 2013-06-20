@@ -112,7 +112,7 @@
     (define/public (get-examples-root) examples-root)
     
     (define/public (get-board-choices)
-      (list "Arduino Duemilanove" "Arduino Uno"))
+      (list "Arduino Duemilanove" "Arduino Uno" "Moteino"))
     
     ;     ;;    ;;;;;;;    ;;      ;;    ;;     ;;;;     ;;      ;;    ;;   
     ;   ;;;;;   ;;;;;;;  ;;;;;   ;;;;;   ;;   ;;;;;;;;   ;;;     ;;  ;;;;;  
@@ -222,7 +222,7 @@
     (define (board-choice->board-type choice)
       (case choice
         [("Arduino Duemilanove") "arduino"]
-        [("Arduino Uno") "uno"]
+        [("Arduino Uno" "Moteino") "uno"]
         [else "arduino"]))
     
     (define/public (set-board-type b)

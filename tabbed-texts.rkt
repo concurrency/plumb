@@ -160,7 +160,25 @@
         [(send (current-text) get-filename)
          (send (current-text) save-file)]
         [else
-         (let* ([f (put-file "Save file as...")]
+         (let* ([f (let ([result  "default.occ"])
+                     (let loop ()
+                       (set! result (put-file "Save file as..."))
+                       (unless (regexp-match #px".*\\.(occ|module|inc)$" result)
+                         (define d (new dialog% 
+                                        [label "Try again!"]
+                                        ))
+                         (new message% 
+                              [parent d]
+                              [label "Filenames must end in .occ!"])
+                         (new button% 
+                              [parent d]
+                              [label "OK!"] 
+                              [callback (λ (b e) 
+                                          (send d show false))])
+                         (send d show true)
+                         (loop)))
+                     result)]
+                        
                 [filename (let-values ([(base fname dir?)
                                         (split-path f)])
                             (format "~a" fname))])

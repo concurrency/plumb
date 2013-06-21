@@ -84,7 +84,9 @@
           (read
            (get-pure-port
             (string->url
-             "https://raw.github.com/concurrency/plumb/master/conf/conf-compilation-server.rkt"))))
+             ;"https://raw.github.com/concurrency/plumb/master/conf/conf-compilation-server.rkt"
+             "http://concurrency.cc/plumb/client-conf/conf-compilation-server.rkt"
+             ))))
         (debug 'APP-LAUNCH "HOST CONFIG: ~a" h)
         (cond
           [(hash? h)

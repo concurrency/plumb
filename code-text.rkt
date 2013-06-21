@@ -8,7 +8,9 @@
 (define FONT-SIZE 
   (case (system-type)
     [(macosx) 16]
-    [(win windows) 12]))
+    [(win windows) 12]
+    [(unix) 12]
+))
 
 (define code%
   (class (text:line-numbers-mixin 

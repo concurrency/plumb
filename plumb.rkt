@@ -347,6 +347,7 @@
 (define (board-choice->board-type choice)
   (case choice
     [("Arduino Duemilanove") "arduino"]
+    [("Arduino Uno") "uno"]
     [else "arduino"]))
 
 
@@ -477,7 +478,7 @@
   (define board (new choice% 
                      [parent f]
                      [label "Board Type"]
-                     [choices (list "Arduino Duemilanove")]))
+                     [choices (list "Arduino Duemilanove" "Arduino Uno")]))
   
   (define hortz (new horizontal-panel%
                      [parent f]))

@@ -17,10 +17,11 @@
          "response-handling.rkt"
          "code-execution.rkt"
          "config-client.rkt"
-         "syntax-error-handling.rkt"
+         ;"syntax-error-handling.rkt"
          )
 
 (define MIN-FIRMWARE-SIZE 10000)
+(define CLIENT-CONF-ROOT "http://concurrency.cc/plumb/client-conf")
 
 (define plumb%
   (class model%
@@ -72,6 +73,9 @@
     (define/public (get-first-check-or-compile?)
       first-check-or-compile?)
     
+    (define (client-conf str)
+      (format "~a/~a" CLIENT-CONF-ROOT str))
+    
     ;; Grab the host and port from the server
     (define/public (compilation-server-config)
       (with-handlers ([exn:fail? 
@@ -81,12 +85,18 @@
                          (exit)
                          )])
         (define h 
-          (read
-           (get-pure-port
-            (string->url
-             ;"https://raw.github.com/concurrency/plumb/master/conf/conf-compilation-server.rkt"
-             "http://concurrency.cc/plumb/client-conf/conf-compilation-server.rkt"
-             ))))
+          (cond
+            [(file-exists? (build-path (current-directory) "RUNLOCAL"))
+             (make-hash `((host . "localhost")
+                          (port . "9000")
+                          (examples . "https://raw.github.com/concurrency/plumbing-examples/master/repositories.conf")))]
+            [else
+             (read
+              (get-pure-port
+               (string->url
+                (client-conf "conf-compilation-server.rkt")
+                )))]))
+        
         (debug 'APP-LAUNCH "HOST CONFIG: ~a" h)
         (cond
           [(hash? h)
@@ -113,8 +123,31 @@
       (set! examples-root str))
     (define/public (get-examples-root) examples-root)
     
+    
+    (define/public (get-static #:as [as 'sexp] . args)
+      (with-handlers ([exn:fail? 
+                       (λ (e)
+                         ;(alert-dialog (->string e) 'exit)
+                         (printf "EXITING: ~a~n" (->string e))
+                         (exit)
+                         )])
+        (debug 'GET-STATIC "[~a] ~a" as args)
+        (let ([slurper (case as
+                         [(sexp) read]
+                         [(text) (λ (p) 
+                                   (filter (λ (s) (> (string-length s) 2))
+                                           (regexp-split "\n" (port->string p))))])])
+          (slurper
+           (get-pure-port
+            (apply make-server-url 
+                   (append (list host port)
+                           args)))
+           ))))
+    
+    
+    ;; Should be a list of strings.
     (define/public (get-board-choices)
-      (list "Arduino Duemilanove" "Arduino Uno" "Moteino"))
+      (get-static #:as 'text "board-choices.rkt"))
     
     ;     ;;    ;;;;;;;    ;;      ;;    ;;     ;;;;     ;;      ;;    ;;   
     ;   ;;;;;   ;;;;;;;  ;;;;;   ;;;;;   ;;   ;;;;;;;;   ;;;     ;;  ;;;;;  
@@ -369,8 +402,8 @@
     (define/public (get-message) message)
     (define/public (set-message m) 
       (set! message m))
-      
-      
+    
+    
     (define/public (get-error-message) error-message)
     
     (define/public (get-compilation-result) compilation-result)
@@ -406,6 +439,97 @@
         ;; This loads things from Bitbucket.
         (load-error-regexps))
       (compile* 'check-syntax))
+    
+    
+    (define error-regexps (make-parameter false))
+    
+    ;; Error-occ21-error.occ(5)- foo is not declared
+    ;; foo undeclared on "error.occ" line 5
+    
+    (struct err-pat (name msg subs pattern parts) #:transparent)
+    
+    (define BASE "Error-occ21-(.*?)\\.occ\\(([0-9]+)\\)- ")
+    (define BASE-PARTS '(filename line-number))
+    
+    (define-syntax-rule (e-p name format-str subs str ids ...)
+      (err-pat (quote name)
+               format-str
+               (quote subs)
+               (string-append BASE str)
+               (append BASE-PARTS (list (quote ids) ...))))
+    
+    (error-regexps
+     (list 
+      (err-pat 'default
+               "Line ~a, ~a"
+               '(line-number message)
+               (string-append BASE "(.*?)$")
+               (append BASE-PARTS '(message)))
+      ))
+    
+    (define/public (load-error-regexps)
+      (define gh-read
+        (send this get-static #:as 'sexp "plumbing-syntax-errors" "errors.rkt"))
+      
+      (debug 'SYNTAX-ERROR-HANDLING "~a~n" gh-read)
+      
+      (let ([pats
+             (map (λ (e)
+                    (err-pat (->sym (first e))
+                             (second e)
+                             (map ->sym (third e))
+                             (string-append BASE (fourth e))
+                             (append BASE-PARTS (list (->sym (fifth e))))
+                             ))
+                  gh-read)])
+        (debug 'SYNTAX-ERROR-HANDLING "~a" pats)
+        (error-regexps pats)))
+    
+    ;; (struct err-pat (name msg subs pattern parts) #:transparent)
+    (define (index-of o ls)
+      (cond
+        [(empty? ls) 10000]
+        [(equal? (first ls) o) 0]
+        [else
+         (add1 (index-of o (rest ls)))]))
+    
+    (define (extract-part id match ep)
+      (list-ref match
+                (add1 (index-of id (err-pat-parts ep)))))
+    
+    (define (build-error-message ls)
+      (let ([h (first ls)]
+            [ep (second ls)]
+            [line (third ls)])
+        (let ([format-string (string-append "[~a, line ~a] " (err-pat-msg ep))]
+              [field-order (err-pat-subs ep)]
+              [match (regexp-match (err-pat-pattern ep) line)])
+          (list 
+           (string->number (extract-part 'line-number match ep))
+           (apply format 
+                  `(,format-string
+                    ,@(append
+                       (list (err-pat-name ep)
+                             (extract-part 'line-number match ep))
+                       (map (λ (id)
+                              (extract-part id match ep))
+                            (err-pat-subs ep))
+                       ))))
+          )))
+    
+    (define (process-error-message h)
+      (define response (make-parameter false))
+      (when (hash-has-key? h 'errormessage)
+        (let ([msg (hash-ref h 'errormessage)])
+          (for ([line (regexp-split "\n" (first msg))])
+            (for ([ep (error-regexps)])
+              (when (and (not (response))
+                         (regexp-match (err-pat-pattern ep) line))
+                (response (list h ep line))))))
+        (build-error-message (response))
+        ))
+    
+    
     
     
     ;   ;;;;;;; ;;  ;;;;;    ;;       ;; ;;     ;     ;;    ;;     ;;;;;    ;;;;;;; 
@@ -539,7 +663,7 @@
         ;; Base64 encode the JSON string
         [(string? 'ERROR-B64-ENCODE)
          (b64-encode (send p get))]
-                         
+        
         
         ;; Do the GET
         [(bytes? 'ERROR-HTTP-GET)
@@ -656,7 +780,7 @@
       (define (occ-filter f)
         (and (file-exists? f)
              (member (->sym (file-extension f))
-                             '(occ inc module))))
+                     '(occ inc module))))
       
       (define p (new process% 
                      [context 'COMPILE]

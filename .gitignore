@@ -17,6 +17,8 @@ node_modules
 
 npm-debug.log
 
+RUNLOCAL
+
 compiled/
 htdocs/
 build-mac/

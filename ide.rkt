@@ -8,6 +8,7 @@
          "menu-examples.rkt"
          "debug.rkt"
          "mvc.rkt"
+         "util.rkt"
          )
 
 (define NUMBER-OF-ERROR-LINES 3)
@@ -200,7 +201,31 @@
                             [label "&Examples"]
                             [parent menu-bar]))
       
+      
       ;; Loads stuff from servers
+      
+    (define (replace-tags-in-code conf)
+      (let ([code (send hardware get-static #:as 'text "plumbing-examples" (hash-ref conf 'path))]
+            [result '()])
+        
+        ;; Append a standard header
+        (when (and (hash-has-key? conf 'name)
+                   (hash-has-key? conf 'tweet)
+                   (hash-has-key? conf 'author)
+                   (hash-has-key? conf 'email))
+          (set! code 
+                (cons
+                 "-- {{name}}\n-- {{tweet}}\n-- {{author}} ({{email}})\n\n"
+                 code)))
+        
+        (for ([line code])
+          (for ([key (hash-keys conf)])
+            (set! line (regexp-replace* (format "{{~a}}" key)
+                                        line
+                                        (hash-ref conf key))))
+          (set! result (snoc result (format "~a~n" line))))
+        (apply string-append result)))
+      
       (define example-submenus
         (new menu-examples%
              [model hardware]

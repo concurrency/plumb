@@ -257,7 +257,7 @@
                    #:server-root-path (current-directory)
                    #:extra-files-paths 
                    (list 
-                    (build-path (current-directory) "ide"))
+                    (build-path (current-directory) "static"))
                    #:servlet-path "/"
                    #:servlet-regexp #rx""
                    )))

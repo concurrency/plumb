@@ -51,9 +51,10 @@
 
 (define (process-config str)
   (define h (make-hash))
-  (debug 'PC "lines: ~a" (regexp-split "\n" str))
+  (debug 'PC "lines: ~a" str)
   
-  (for ([line (regexp-split "\n" str)])
+  (for ([line (cond [(string? str) (regexp-split "\n" str)]
+                    [(list? str) str])])
     (debug 'PC "line: ~a" line)
     (when (and (not (regexp-match "^#" line))
                (regexp-match "(.*?):(.*?)" line))

@@ -10,7 +10,8 @@
          "debug.rkt"
          ;; Menu stuff comes from here.
          "view-examples.rkt"
-         "syntax-error-handling.rkt")
+         ;"syntax-error-handling.rkt"
+         )
 
 
 ;   ;;       ;;     ;;     ;;  ;;      ;; 
@@ -109,7 +110,7 @@
                                    (when first-check-or-compile?
                                      (set! first-check-or-compile? false)
                                      ;; This loads things from Bitbucket.
-                                     (load-error-regexps))
+                                     (send model load-error-regexps))
                                    
                                    (send model check-syntax)
                                    (send b enable true)
@@ -132,7 +133,7 @@
                                  (when first-check-or-compile?
                                      (set! first-check-or-compile? false)
                                      ;; This loads things from Bitbucket.
-                                     (load-error-regexps))
+                                     (send model load-error-regexps))
                                  
                                  ;; Compile
                                  (send model compile)

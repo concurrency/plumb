@@ -1,0 +1,25 @@
+#INCLUDE "plumbing.module"
+
+-- The producer continuously communicates
+-- a value on the channel.
+PROC producer (CHAN INT ch!)
+  WHILE TRUE
+    ch ! 42
+:
+
+-- The consumer is always ready to read.
+PROC consumer (CHAN INT ch?)
+  INT value:
+  WHILE TRUE
+    ch ? value
+:
+
+-- The two processes are run in parallel.
+-- Nothing will be visible as a result of this example.
+-- It demonstrates a common pattern, nothing more.
+PROC main ()
+  CHAN INT ch:
+  PAR
+    producer (ch!)
+    consumer (ch?)
+:

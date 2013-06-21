@@ -8,6 +8,7 @@ BUILD=$SRC/build-win
 DDNAME=Plumb
 DEST=$BUILD/$DDNAME-$DATE
 RACO=/c/Program\ Files/Racket/raco.exe
+RACKET=/c/Program\ Files/Racket/racket.exe
 ZIP=/c/Program\ Files/7-Zip/7z.exe
 PSCP=~/My\ Documents/GitHub/pscp.exe
 SOURCE=ide.rkt
@@ -27,6 +28,9 @@ pushd "$BUILD"
 popd
 
 pushd "$BUILD"
+  echo Write version file
+  rm -f version.rkt
+  "$RACKET" build/write-version.rkt
   echo   Build Executable
   cp "$SRC"/build/arduino.ico "$BUILD"
   "$RACO" exe --ico arduino.ico -o "$DDNAME.exe" "$SRC/$SOURCE"

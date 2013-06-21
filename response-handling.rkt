@@ -49,7 +49,7 @@
   (set/catch result port?
     (get-response 'ERROR-BYTES-TO-STRING)
     (let ([str (read-all (result))])
-      (debug 'PROCESS-RESPONSE "read-all:~n~a~n" str)
+      ;;(debug 'PROCESS-RESPONSE "read-all:~n~a~n" str)
       str))
   
   ;; Base64 decode
@@ -57,7 +57,7 @@
     (get-response 'ERROR-B64-DECODE)
     (let ([b64 (format "~a" 
                        (b64-decode (result)))])
-      (debug 'PROCESS-RESPONSE "b64:~n~a~n" b64)
+      ;;(debug 'PROCESS-RESPONSE "b64:~n~a~n" b64)
       b64))
   
   ;; Read JSON
@@ -71,10 +71,11 @@
 
 (define (encode-response json)
   (when (error-response? json)
-    (printf "[~a] ~a~n~n~a~n"
-            (hash-ref json 'code)
-            (hash-ref json 'message)
-            json))
+    (debug 'PROCESS-RESPONSE-ERROR
+           "[~a] ~a~n~n~a~n"
+           (hash-ref json 'code)
+           (hash-ref json 'message)
+           json))
   
   (response/xexpr #:code (if (success-response? json)
                              200 400)

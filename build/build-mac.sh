@@ -9,7 +9,7 @@ DMGNAME=${BASE}-${DATE}
 SOURCE=ide.rkt
 #SOURCE=plumb-gui.rkt
 
-function announce () {
+function announce(){
   echo $1
   say -v Victoria $1
 }
@@ -20,6 +20,9 @@ pushd ../
 popd
 
 pushd ../  
+  echo "Writing version file."
+  rm -f version.rkt
+  racket build/write-version.rkt
   announce "Compiling ${BASE}"
   raco exe --gui -o ${BASE} ${SOURCE}
   announce "Done compiling."

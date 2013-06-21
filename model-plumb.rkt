@@ -64,6 +64,8 @@
            [first-check-or-compile? true]
            [examples-root false]
            )
+ 
+        
     
     (define/public (get-error-line) error-line)
     
@@ -135,7 +137,7 @@
         (let ([slurper (case as
                          [(sexp) read]
                          [(text) (λ (p) 
-                                   (filter (λ (s) (> (string-length s) 2))
+                                   (filter (λ (s) (>= (string-length s) 1))
                                            (regexp-split "\n" (port->string p))))])])
           (slurper
            (get-pure-port
@@ -405,6 +407,7 @@
     
     
     (define/public (get-error-message) error-message)
+    (define/public (set-error-message e) (set! error-message e))
     
     (define/public (get-compilation-result) compilation-result)
     

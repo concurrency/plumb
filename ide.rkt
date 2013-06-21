@@ -1,6 +1,6 @@
 #lang racket
 
-(require racket/gui)
+(require racket/gui framework)
 
 (require "code-text.rkt"
          "tabbed-texts.rkt"
@@ -9,6 +9,7 @@
          "debug.rkt"
          "mvc.rkt"
          "util.rkt"
+         "version.rkt"
          )
 
 (define NUMBER-OF-ERROR-LINES 3)
@@ -27,6 +28,7 @@
            [compile-driver false]
            [hardware false]
            [network false]
+           [show-debug? false]
            )
     
     ;; ---------------------------------------------------------------------------
@@ -47,6 +49,9 @@
       
       (define (compile-check-callback kind)
         (λ (b e)
+          (send hardware set-error-message "")
+          (send err-msg-text erase)
+          (update)
           (let ([current-file (send tabbed-texts get-filename)])
             (cond
               [current-file
@@ -106,7 +111,8 @@
                                                   (send board get-selection))])
                                        (send compile-code set-label 
                                              (format "Send code to ~a" selection-string))
-                                       (send hardware set-board-type selection-string)))]
+                                       (send hardware set-board-type selection-string)
+                                       (update)))]
                          ))
       
       (define serial-port (new choice%
@@ -118,7 +124,8 @@
                                [callback (λ (v e)
                                            (send hardware set-arduino-port 
                                                  (send serial-port get-string 
-                                                       (send serial-port get-selection))))]))
+                                                       (send serial-port get-selection)))
+                                           (update))]))
       
       (define refresh (new button%
                            [parent h2]
@@ -204,27 +211,27 @@
       
       ;; Loads stuff from servers
       
-    (define (replace-tags-in-code conf)
-      (let ([code (send hardware get-static #:as 'text "plumbing-examples" (hash-ref conf 'path))]
-            [result '()])
-        
-        ;; Append a standard header
-        (when (and (hash-has-key? conf 'name)
-                   (hash-has-key? conf 'tweet)
-                   (hash-has-key? conf 'author)
-                   (hash-has-key? conf 'email))
-          (set! code 
-                (cons
-                 "-- {{name}}\n-- {{tweet}}\n-- {{author}} ({{email}})\n\n"
-                 code)))
-        
-        (for ([line code])
-          (for ([key (hash-keys conf)])
-            (set! line (regexp-replace* (format "{{~a}}" key)
-                                        line
-                                        (hash-ref conf key))))
-          (set! result (snoc result (format "~a~n" line))))
-        (apply string-append result)))
+      (define (replace-tags-in-code conf)
+        (let ([code (send hardware get-static #:as 'text "plumbing-examples" (hash-ref conf 'path))]
+              [result '()])
+          
+          ;; Append a standard header
+          (when (and (hash-has-key? conf 'name)
+                     (hash-has-key? conf 'tweet)
+                     (hash-has-key? conf 'author)
+                     (hash-has-key? conf 'email))
+            (set! code 
+                  (cons
+                   "-- {{name}}\n-- {{tweet}}\n-- {{author}} ({{email}})\n\n"
+                   code)))
+          
+          (for ([line code])
+            (for ([key (hash-keys conf)])
+              (set! line (regexp-replace* (format "{{~a}}" key)
+                                          line
+                                          (hash-ref conf key))))
+            (set! result (snoc result (format "~a~n" line))))
+          (apply string-append result)))
       
       (define example-submenus
         (new menu-examples%
@@ -242,10 +249,86 @@
                         [label "&Help"]
                         [parent menu-bar]))
       
+      (new menu-item%
+           [label "Show Debug Window"]
+           [parent help]
+           [callback 
+            (λ (m e)
+              (toggle-debug-window))])
+      
+      (new menu-item%
+           [label (format "Version: ~a" VERSION)]
+           [parent help]
+           [callback (λ (m e) '...)])
+      
       'DONEWITHMENU
       )
     
+    (define debug-frame%
+      (class frame%
+        (define/augment (on-close)
+           (set! show-debug? false))
+        (super-new)))
     
+    (define gui-debug-window
+      (new debug-frame% 
+           [width 600]
+           [label "Debug Messages"]
+          ))
+    (define debug-msg-canvas (new editor-canvas%
+                                  (parent gui-debug-window)
+                                  (label "")
+                                  (stretchable-width true)
+                                  (stretchable-height true)
+                                  (line-count 30)
+                                  ))
+    (define keymap (keymap:get-editor))
+    (define debug-msg-text (new text%
+                                (auto-wrap true)
+                                ))
+    (send debug-msg-text set-keymap keymap)
+    (send debug-msg-canvas set-editor debug-msg-text)
+    
+    (define (toggle-debug-window)
+      (set! show-debug? (not show-debug?))
+      
+      ;; Kill the old thread
+      (when debug-thread
+        (kill-thread debug-thread)
+        (set-debug-thread! false))
+      
+      (if show-debug?
+          ;; Start a new one piping to the editor component
+          (set-gui-debug)
+          (set-textual-debug))
+    
+      (send gui-debug-window show show-debug?)
+      )
+    
+    
+    (define (set-gui-debug)
+      (let ([c (make-channel)])
+        (set-debug-channel! c)
+        (when debug-thread
+          (kill-thread debug-thread))
+        (set-debug-thread! (thread (λ ()
+                                     (let loop ()
+                                       (send debug-msg-text insert
+                                             (channel-get c)
+                                             (send debug-msg-text last-position))
+                                       (loop)))))
+        ))
+    
+    (define (set-textual-debug)
+      (let ([c (make-channel)])
+        (set-debug-channel! c)
+        (when debug-thread
+          (kill-thread debug-thread))
+        (set-debug-thread! (thread (λ ()
+                                     (let loop ()
+                                       (printf "~a" (channel-get c))
+                                       (loop)))))
+        ))
     
     ;; ---------------------------------------------------------------------------
     ;; BUILD-IDE
@@ -277,6 +360,8 @@
       'OK
       )
     
+    
+    
     (define/public (create)
       
       ;; Interaction
@@ -287,6 +372,7 @@
       (send hardware compilation-server-config)
       (send hardware add-view this)
       (enable-debug! 'ALL)
+      (set-textual-debug)
       (build-ide))
     
     (define/public (show bool)

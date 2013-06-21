@@ -360,7 +360,8 @@
       'OK
       )
     
-    
+    (define (check-version)
+      
     
     (define/public (create)
       
@@ -373,7 +374,10 @@
       (send hardware add-view this)
       (enable-debug! 'ALL)
       (set-textual-debug)
-      (build-ide))
+      (build-ide)
+      
+      (check-version)
+      )
     
     (define/public (show bool)
       (send f show bool))

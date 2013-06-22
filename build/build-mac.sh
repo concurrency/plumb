@@ -97,9 +97,9 @@ function thebuild {
       if [[ -f ~/.ssh/big-mac-berea ]]; then
         KEY=~/.ssh/big-mac-berea
       fi
-      scp -i "$KEY" ${DMGNAME}.dmg jadudm@jadud.com:~/jadud.com/downloads/   
+      scp -i "$KEY" ${DMGNAME}.dmg jadudm@jadud.com:~/jadud.com/downloads/plumb/   
 
-      echo http://jadud.com/downloads/${DMGNAME}.dmg
+      echo http://jadud.com/downloads/plumb/${DMGNAME}.dmg
     fi
   
   popd

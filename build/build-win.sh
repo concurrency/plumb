@@ -65,8 +65,8 @@ function thebuild {
         KEY=~/.ssh/big-mac-berea
       fi
 
-      scp -i "$KEY" "$DDNAME-$DATE".zip jadudm@jadud.com:~/jadud.com/downloads/   
-      echo http://jadud.com/downloads/$DDNAME-$DATE.zip
+      scp -i "$KEY" "$DDNAME-$DATE".zip jadudm@jadud.com:~/jadud.com/downloads/plumb/   
+      echo http://jadud.com/downloads/plumb/$DDNAME-$DATE.zip
     fi
   popd
 

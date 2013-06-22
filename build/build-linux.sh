@@ -46,7 +46,7 @@ pushd "$BUILD"
   "$ZIP" cvzf "$DDNAME-$DATE.tar.gz" "$DDNAME-$DATE"
   if [[ $1 = "upload" ]]; then
     if [[ -f ~/.ssh/small-imac-berea ]]; then
-      KEY=~/.ssh/small-imac/berea
+      KEY=~/.ssh/small-imac-berea
     fi
     if [[ -f ~/.ssh/big-mac-berea ]]; then
       KEY=~/.ssh/big-mac-berea

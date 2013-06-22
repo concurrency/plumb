@@ -1,18 +1,18 @@
-DATE=`date +%Y%m%d`
-BASE=Plumb
-APP=${BASE}.app
-PLUMBCONTENTS=${APP}/Contents
-ICON=omer-icon
-VOLICON=concurrencycc-logo
-BUILD=build-mac
-DMGNAME=${BASE}-${DATE}
-SOURCE=ide.rkt
-#SOURCE=plumb-gui.rkt
-
 function announce(){
   echo $1
   say -v Victoria $1
 }
+
+function thebuild() {
+  DATE=`date +%Y%m%d`
+  APP=${BASE}.app
+  PLUMBCONTENTS=${APP}/Contents
+  ICON=omer-icon
+  VOLICON=concurrencycc-logo
+  BUILD=build-mac
+  DMGNAME=${BASE}-${DATE}
+  BASE=$1
+  SOURCE=$2
 
 pushd ../
   rm -rf ${BUILD}
@@ -96,3 +96,10 @@ pushd ../${BUILD}
 popd
 
 announce "All done."
+}
+
+announce "Building the IDE"
+thebuild Plumb ide.rkt
+
+announce "Building the BYOE"
+thebuild PlumbBYOE plumb-byoe.rkt

@@ -8,9 +8,7 @@
 
 (require "mvc.rkt"
          "debug.rkt"
-         ;; Menu stuff comes from here.
-         "view-examples.rkt"
-         ;"syntax-error-handling.rkt"
+         "version.rkt"
          )
 
 
@@ -79,7 +77,7 @@
                              [label "Choose Code"]
                              [stretchable-width true]
                              [callback (λ (b e)
-                                         (let ([d (new path-dialog%
+                                         (let* ([d (new path-dialog%
                                                        [label "occam code chooser"]
                                                        [message "Choose your main .occ file."]
                                                        [parent f]
@@ -87,8 +85,10 @@
                                                        [directory (or (getenv "HOME")
                                                                       (getenv "USERPROFILE"))]
                                                        [filters (list (list "occam files" "*.occ"))]
-                                                       [dir? false])])
-                                           (send model set-main-file (send d run))
+                                                       [dir? false])]
+                                                [f (send d run)])
+                                           (when f
+                                             (send model set-main-file f))
                                            ))]
                              ))
     
@@ -99,6 +99,7 @@
                        [enabled false]
                        [callback (λ (b e)
                                    (send b enable false)
+                                   (send model set-error-message "")
                                    (update-model)
                                    (set-remote-host)
                                    
@@ -124,6 +125,7 @@
                      [callback (λ (b e)
                                  
                                  (send b enable false)
+                                 (send model set-error-message "")
                                  (update-model)
                                  (set-remote-host)
                                  ;; Set the main file
@@ -174,6 +176,8 @@
     ;   ;;       ;;  ;;       ;;     ;;;   ;;;;;;;;  ;; ;;; 
     ;   ;;       ;;  ;;;;;;;  ;;      ;;     ;;;;     ;;;;  
     
+    (define/public (get-frame)
+      f)
     
     ;; FIXME
     ;; No longer needed?
@@ -187,21 +191,15 @@
       )
     
     (define (populate-menu-bar)
-      ;(set! menu-bar (new menu-bar% [parent f]))
-      (define examples (new menu%
-                            [label "&Examples"]
-                            [parent menu-bar]))
-      
-      ;; Loads stuff from servers
-      (define example-submenus
-        (new menu-examples%
-             [model model]
-             [main this]
-             [menu examples]))
       
       (define help (new menu%
                         [label "&Help"]
                         [parent menu-bar]))
+      
+      (new menu-item%
+           [label (format "Version: ~a" VERSION)]
+           [parent help]
+           [callback (λ (m e) '...)])
       
       ;; FIXME 
       ;; Probably handled at app startup now.
@@ -248,9 +246,8 @@
       (when (send model get-message)
         (send messages set-label (send model get-message)))   
       
-      (when (not (zero? (string-length (send model get-error-message))))
-        (send err-msg-text erase)
-        (send err-msg-text insert (send model get-error-message)))
+      (send err-msg-text erase)
+      (send err-msg-text insert (send model get-error-message))
       )
     
     

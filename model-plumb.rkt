@@ -413,7 +413,9 @@
     
     
     (define/public (get-error-message) error-message)
-    (define/public (set-error-message e) (set! error-message e))
+    (define/public (set-error-message e) 
+      (set! error-message e)
+      (update))
     
     (define/public (get-compilation-result) compilation-result)
     

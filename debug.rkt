@@ -21,6 +21,17 @@
 (define (set-debug-channel! c)
   (set! debug-channel c))
 
+(define (set-textual-debug)
+      (let ([c (make-channel)])
+        (set-debug-channel! c)
+        (when debug-thread
+          (kill-thread debug-thread))
+        (set-debug-thread! (thread (λ ()
+                                     (let loop ()
+                                       (printf "~a" (channel-get c))
+                                       (loop)))))
+        ))
+
 (define-syntax-rule (debug key msg args ...)
   (when (or (member key (FLAGS))
             (member 'ALL (FLAGS)))

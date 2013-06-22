@@ -1,6 +1,9 @@
 #lang racket
 
-(require racket/gui framework)
+(require racket/gui 
+         framework
+         net/url
+         browser/external)
 
 (require "code-text.rkt"
          "tabbed-texts.rkt"
@@ -360,8 +363,56 @@
       'OK
       )
     
+    
+ 
     (define (check-version)
-      (
+      (let ([remote-version
+             (read
+              (get-pure-port
+               (string->url
+                "http://concurrency.cc/plumb/client-conf/version.txt")))])
+        (debug 'CHECK-VERSION "[~a] LOCAL [~a] REMOTE" 
+               VERSION
+               remote-version)
+        
+        (define block? true)
+        (define get? false)
+        
+        (when (> remote-version
+                 (string->number VERSION))
+          (debug 'CHECK-VERSION "Newer version exists!")
+          (define vf (new frame%
+                          [label "New Version!"]
+                          [parent f]
+                          ))
+          (new message% 
+               [label (format "You're running version ~a of Plumb." VERSION)]
+               [parent vf])
+          
+          (new message%
+               [label    (format "We recommend version ~a instead." remote-version)]
+               [parent vf])
+          
+          (define h (new horizontal-panel%
+                         [parent vf]
+                         [stretchable-width true]))
+          (define b (new button%
+                         [label "Later"]
+                         [parent h]
+                         [stretchable-width true]
+                         [callback (λ (b e)
+                                     (send vf show false))]))
+          (define b2 (new button%
+                         [label "Get it now!"]
+                         [parent h]
+                         [stretchable-width true]
+                         [callback (λ (b e)
+                                     (send-url "http://concurrency.cc/downloads/")
+                                     (send vf show false)                           
+                                     )]))
+          (send vf show true)
+          ;; Use thread/yield here to busywait.
+          )))
     
     (define/public (create)
       
@@ -374,9 +425,10 @@
       (send hardware add-view this)
       (enable-debug! 'ALL)
       (set-textual-debug)
+      (check-version)
       (build-ide)
       
-      (check-version)
+      
       )
     
     (define/public (show bool)

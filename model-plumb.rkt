@@ -91,7 +91,7 @@
             [(file-exists? (build-path (current-directory) "RUNLOCAL"))
              (make-hash `((host . "localhost")
                           (port . "9000")
-                          (examples . "https://raw.github.com/concurrency/plumbing-examples/master/repositories.conf")))]
+                          (examples . "http://localhost:9000/plumbing-examples/repositories.conf")))]
             [else
              (read
               (get-pure-port

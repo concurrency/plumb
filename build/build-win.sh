@@ -1,17 +1,20 @@
 #!bash
 
+function thebuild {
 echo Setting Up Variables
+DDNAME=$1
+SOURCE=$2
+UPLOAD=$3
 
 DATE=`date +%Y%m%d`
 SRC=~/git/plumb
 BUILD=$SRC/build-win
-DDNAME=Plumb
 DEST=$BUILD/$DDNAME-$DATE
 RACO=/c/Program\ Files/Racket/raco.exe
 RACKET=/c/Program\ Files/Racket/racket.exe
 ZIP=/c/Program\ Files/7-Zip/7z.exe
 PSCP=~/My\ Documents/GitHub/pscp.exe
-SOURCE=ide.rkt
+
 
 pushd "$SRC"
   rm -rf "$BUILD"
@@ -44,10 +47,13 @@ popd
 echo Copy Needed Directories
 cp -R "$SRC/client-config" "$DEST/client-config"
 
+mkdir -p ../completed-builds/
+cp "$DDNAME-$DATE.zip" ../completed-builds/
+
 pushd "$BUILD"
   echo Zip Everything
   "$ZIP" a -r "$DDNAME-$DATE.zip" "$DDNAME-$DATE"
-  if [[ $1 = "upload" ]]; then
+  if [[ $UPLOAD = "upload" ]]; then
     if [[ -f ~/.ssh/small-imac-berea ]]; then
       KEY=~/.ssh/small-imac/berea
     fi
@@ -64,6 +70,8 @@ popd
 # echo SCP Everything
 # "$PSCP" "$DDNAME.zip" jadudm@transterpreter.org:/srv/www/org/transterpreter.download/files/flow/
 
-
-
 echo End Of Script
+}
+
+thebuild Plumb ide.rkt $1
+thebuild PlumbBYOE plumb-byoe.rkt $1

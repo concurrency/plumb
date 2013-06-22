@@ -29,9 +29,13 @@ pushd "$BUILD"
 popd
 
 pushd "$BUILD"
+  
   echo Write version file
+  pushd ..
   rm -f version.rkt
   "$RACKET" build/write-version.rkt
+  popd
+ 
   echo   Build Executable
   cp "$SRC"/build/"$ICON.ico" "$BUILD"
   "$RACO" exe --ico "$ICON.ico" -o "$DDNAME.exe" "$SRC/$SOURCE"
@@ -50,7 +54,7 @@ pushd "$BUILD"
   "$ZIP" a -r "$DDNAME-$DATE.zip" "$DDNAME-$DATE"
   if [[ $1 = "upload" ]]; then
     if [[ -f ~/.ssh/small-imac-berea ]]; then
-      KEY=~/.ssh/small-imac/berea
+      KEY=~/.ssh/small-imac-berea
     fi
     if [[ -f ~/.ssh/big-mac-berea ]]; then
       KEY=~/.ssh/big-mac-berea

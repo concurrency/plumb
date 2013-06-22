@@ -368,9 +368,9 @@
       (send hardware enumerate-arduinos)
       (send hardware compilation-server-config)
       (send hardware add-view this)
+      (send hardware say-hello)
       (enable-debug! 'ALL)
       (set-textual-debug)
-      (send hardware say-hello)
       (build-ide)
       )
     

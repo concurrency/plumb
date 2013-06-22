@@ -19,8 +19,11 @@
   (define win-feedback (new win-feedback% [model hardware]))
   ;; Update everyone
   (send hardware update)
+  ;; Say Hello
+  (send hardware say-hello)
   ;; Show the main view
   (send win-main show true)
+  
   (check-version (send win-main get-frame))
   )
 

@@ -183,7 +183,7 @@
       ;; We don't care what comes back
       (process-response
        (get-pure-port 
-        (make-server-url host port "hello" (default-metadata)))))
+        (make-server-url host port "log" LOG-KEY (default-metadata)))))
     
     (define (get-new-session-id #:action [action false])
       ;; Create a new process object

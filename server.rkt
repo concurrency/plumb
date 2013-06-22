@@ -142,8 +142,9 @@
               (b64-decode metadata)))
   ))
 
-(define (client-says-hello req metadata)
-  (when (< (string-length metadata) 1000)
+(define (client-log req key metadata)
+  (when (and (equal? key LOG-KEY)
+             (< (string-length metadata) 1000))
     (log req metadata))
   (encode-response 
    (get-response 'OK)))
@@ -258,7 +259,7 @@
 
 (define-values (dispatch blog-url)
   (dispatch-rules
-   [("hello" (string-arg)) client-says-hello]
+   [("log" (string-arg) (string-arg)) client-log]
    [("start-session" (string-arg)) return-session-id]
    [("add-file" (string-arg)) add-file]
    [("compile" (string-arg) (string-arg) (string-arg)) guarded-compile-session]

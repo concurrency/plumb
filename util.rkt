@@ -11,6 +11,7 @@
 (require "debug.rkt"
          "version.rkt")
 
+(define LOG-KEY "MODICUM")
 
 (define (safe-url-fetch reader url-string #:default [default-message ""])
   (let ([result ""])

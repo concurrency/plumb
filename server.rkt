@@ -4,6 +4,7 @@
          web-server/servlet-env
          net/base64
          json
+          racket/date
          )
 
 (require "compile.rkt"
@@ -126,12 +127,36 @@
   
   (encode-response (result)))
 
+(define (log req metadata)
+  (define d (current-date))
+  (define (pad v) (if (< v 10) (format "0~a" v) v))
+  (define path (build-path (send (config) get-config 'SERVER-LOG-DIR)
+                           (format "~a~a~a-log.txt" 
+                                   (date-year d)
+                                   (pad (date-month d))
+                                   (pad (date-day d)))))
+  (with-output-to-file path #:exists 'append
+    (λ ()
+      (printf "~a,~a~n" 
+              (request-client-ip req)
+              (b64-decode metadata)))
+  ))
+
+(define (client-says-hello req metadata)
+  (when (< (string-length metadata) 1000)
+    (log req metadata))
+  (encode-response 
+   (get-response 'OK)))
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
-(define (return-session-id req)
+(define (return-session-id req metadata)
   (define session-id (format "jupiter-~a" (random-string 32)))
   (debug 'START-SESSION "session-id: ~a~n" session-id)
+  
+  ;; Useage logging
+  (log req metadata)
+  
   (add-session session-id)
   (make-session-dir config session-id)
   ;; Return the session ID.
@@ -233,7 +258,8 @@
 
 (define-values (dispatch blog-url)
   (dispatch-rules
-   [("start-session") return-session-id]
+   [("hello" (string-arg)) client-says-hello]
+   [("start-session" (string-arg)) return-session-id]
    [("add-file" (string-arg)) add-file]
    [("compile" (string-arg) (string-arg) (string-arg)) guarded-compile-session]
    ;; Need guards and session ID checks on retrieve.
@@ -286,6 +312,7 @@
                (P (string->number port))]
    #:args () ;; No command-line args
    
+   (set-textual-debug)
    (enable-debug! 'ALL)
    
    (when (not (config))

@@ -1,14 +1,12 @@
 #lang racket
 
-(require racket/gui
-         racket/date
-         net/url)
+(require racket/gui)
 
 (require "debug.rkt"
          "model-plumb.rkt"
          "byoe-window.rkt"
          "byoe-feedback.rkt"
-         "util.rkt"
+         "util-gui.rkt"
          )
 
 ;; DO STUFF

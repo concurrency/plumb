@@ -46,5 +46,5 @@
     ;; Server Config
     (send this add-config 'PORT 9000)
     (send this add-config 'LISTEN-IP false)
-    
+    (send this add-config 'SERVER-LOG-DIR (build-path (getenv "HOME") "logs"))
     ))

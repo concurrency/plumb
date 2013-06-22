@@ -14,6 +14,7 @@
          "mvc.rkt"
          "util.rkt"
          "version.rkt"
+         "util-gui.rkt"
          )
 
 (define NUMBER-OF-ERROR-LINES 3)
@@ -358,8 +359,6 @@
       'OK
       )
     
-    
-    
     (define/public (create)
       
       ;; Interaction
@@ -371,6 +370,7 @@
       (send hardware add-view this)
       (enable-debug! 'ALL)
       (set-textual-debug)
+      (send hardware say-hello)
       (build-ide)
       )
     

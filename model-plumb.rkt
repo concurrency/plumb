@@ -17,7 +17,7 @@
          "response-handling.rkt"
          "code-execution.rkt"
          "config-client.rkt"
-         ;"syntax-error-handling.rkt"
+         "version.rkt"
          )
 
 (define MIN-FIRMWARE-SIZE 10000)
@@ -99,9 +99,9 @@
              (safe-url-fetch
               read
               (client-conf "conf-compilation-server.rkt")
-              (make-hash `((host . "localhost")
-                           (port . "9000")
-                           (examples . ,local-conf))))]
+              #:default (make-hash `((host . "localhost")
+                                     (port . "9000")
+                                     (examples . ,local-conf))))]
                 )))
         
         (debug 'APP-LAUNCH "HOST CONFIG: ~a" h)
@@ -149,7 +149,7 @@
            (apply make-server-url 
                   (append (list host port)
                           args))
-           '()
+           #:default '()
            ))))
     
     
@@ -171,7 +171,21 @@
     
     (define/public (get-id) id)
     
-    (define (get-new-session-id)
+    (define (default-metadata)
+      (b64-encode
+       (format "~a,~a,~a,~a"
+               (system-type)
+               (system-language+country)
+               (current-seconds)
+               VERSION)))
+    
+    (define/public (say-hello)
+      ;; We don't care what comes back
+      (process-response
+       (get-pure-port 
+        (make-server-url host port "hello" (default-metadata)))))
+    
+    (define (get-new-session-id #:action [action false])
       ;; Create a new process object
       (define p (new process% [context 'SESSION-START]))
       
@@ -183,7 +197,7 @@
          (debug 'START-SESSION "DEFAULT ERROR: ~a" (send p to-string))
          (debug 'START-SESSION "SERVER URL: ~a" 
                 (url->string
-                 (make-server-url host port "start-session")))
+                 (make-server-url host port "start-session" (default-metadata))))
          ;; Nothing should change as a result of this operation
          NO-CHANGE]
         
@@ -803,7 +817,7 @@
       (seq p
         ;; Get a session ID
         [(initial? 'ERROR-ID-FETCH)
-         (get-new-session-id)
+         (get-new-session-id #:action flag)
          id]
         ;; Check
         [(string? 'DEBUG)

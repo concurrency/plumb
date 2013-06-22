@@ -163,7 +163,8 @@
          (let* ([f (let ([result  "default.occ"])
                      (let loop ()
                        (set! result (put-file "Save file as..."))
-                       (unless (regexp-match #px".*\\.(occ|module|inc)$" result)
+                       (unless (and result
+                                    (regexp-match #px".*\\.(occ|module|inc)$" result))
                          (define d (new dialog% 
                                         [label "Try again!"]
                                         ))

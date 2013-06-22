@@ -9,6 +9,21 @@
 
 (require "debug.rkt")
 
+
+(define (safe-url-fetch reader url-string default-message)
+  (let ([result ""])
+    (with-handlers ([exn? (λ (e)
+                            (debug 'SUF "Can't fetch ~a" url-string)
+                            (debug 'SUF "exn: ~a~n" e)
+                            (set! result default-message))])
+      (set! result (reader (get-pure-port 
+                            (cond
+                              [(string? url-string) 
+                               (string->url url-string)]
+                              [else url-string]))))
+      (debug 'SUF "result: ~a" result)
+      result)))
+
 (define (->sym v)
   (string->symbol (format "~a" v)))
 
@@ -33,11 +48,11 @@
   (~a (base64-decode 
        (string->bytes/locale
         (regexp-replace* #px"_" (~a str) "/")))))
-      
+
 (define (b64-encode str)
   (regexp-replace* #px"/"
-                  (base64-encode (string->bytes/utf-8 str))
-                  "_"))
+                   (base64-encode (string->bytes/utf-8 str))
+                   "_"))
 
 (define (read-url str)
   (read-all (get-pure-port 
@@ -68,7 +83,7 @@
 (define (symbol<? a b)
   (string<? (symbol->string a)
             (symbol->string b)))
- 
+
 (define (snoc ls o)
   (reverse (cons o (reverse ls))))
 
@@ -107,7 +122,7 @@
         (loop (read-byte ip))))
     (close-input-port ip))
   (list->bytes (ls)))
-      
+
 
 (define (extract-filename path)
   (define-values (base name dir?) (split-path path))
@@ -132,11 +147,11 @@
   (λ args
     (let* ([url-str 
             (format "http://~a:~a~a"
-                                    (first args)
-                                    (second args)
-                                    (apply string-append
-                                           (map (λ (p) (format "/~a" p)) 
-                                                (rest (rest args)))))]
+                    (first args)
+                    (second args)
+                    (apply string-append
+                           (map (λ (p) (format "/~a" p)) 
+                                (rest (rest args)))))]
            [the-url (string->url url-str)])
       (debug 'MAKE-SERVER-URL "url: ~a~n" url-str)
       the-url)))

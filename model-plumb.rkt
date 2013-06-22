@@ -87,17 +87,22 @@
                          (exit)
                          )])
         (define h 
+          (let ([local-conf
+                 "http://localhost:9000/plumbing-examples/repositories.conf"])  
           (cond
             [(file-exists? (build-path (current-directory) "RUNLOCAL"))
              (make-hash `((host . "localhost")
                           (port . "9000")
-                          (examples . "http://localhost:9000/plumbing-examples/repositories.conf")))]
+                          (examples . ,local-conf)))
+             ]
             [else
-             (read
-              (get-pure-port
-               (string->url
-                (client-conf "conf-compilation-server.rkt")
-                )))]))
+             (safe-url-fetch
+              read
+              (client-conf "conf-compilation-server.rkt")
+              (make-hash `((host . "localhost")
+                           (port . "9000")
+                           (examples . ,local-conf))))]
+                )))
         
         (debug 'APP-LAUNCH "HOST CONFIG: ~a" h)
         (cond
@@ -126,7 +131,7 @@
     (define/public (get-examples-root) examples-root)
     
     
-    (define/public (get-static #:as [as 'sexp] . args)
+    (define/public (get-static #:as [as 'sexp] #:default [default "get-static error"] . args)
       (with-handlers ([exn:fail? 
                        (λ (e)
                          ;(alert-dialog (->string e) 'exit)
@@ -139,11 +144,12 @@
                          [(text) (λ (p) 
                                    (filter (λ (s) (>= (string-length s) 1))
                                            (regexp-split "\n" (port->string p))))])])
-          (slurper
-           (get-pure-port
-            (apply make-server-url 
-                   (append (list host port)
-                           args)))
+          (safe-url-fetch
+           slurper
+           (apply make-server-url 
+                  (append (list host port)
+                          args))
+           '()
            ))))
     
     

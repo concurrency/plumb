@@ -2,6 +2,7 @@
 
 (require racket/gui 
          framework
+         framework/splash
          net/url
          browser/external)
 
@@ -92,9 +93,12 @@
                               [callback (compile-check-callback 'check)]))
       (define compile-code (new button%
                                 [parent h1]
-                                [label (format "Send code to ~a"
-                                               (first
-                                                (send hardware get-board-choices)))]
+                                [label 
+                                 (let ([boards (send hardware get-board-choices)])
+                                   (cond
+                                     [(empty? boards)
+                                      "No board configurations found."]
+                                     [else (format "Send code to ~a" (first boards))]))]
                                 [stretchable-width true]
                                 [callback (compile-check-callback 'compile)]))
       
@@ -270,14 +274,14 @@
     (define debug-frame%
       (class frame%
         (define/augment (on-close)
-           (set! show-debug? false))
+          (set! show-debug? false))
         (super-new)))
     
     (define gui-debug-window
       (new debug-frame% 
            [width 600]
            [label "Debug Messages"]
-          ))
+           ))
     (define debug-msg-canvas (new editor-canvas%
                                   (parent gui-debug-window)
                                   (label "")
@@ -304,7 +308,7 @@
           ;; Start a new one piping to the editor component
           (set-gui-debug)
           (set-textual-debug))
-    
+      
       (send gui-debug-window show show-debug?)
       )
     
@@ -363,14 +367,17 @@
       'OK
       )
     
-    
- 
-    (define (check-version)
-      (let ([remote-version
-             (read
-              (get-pure-port
-               (string->url
-                "http://concurrency.cc/plumb/client-conf/version.txt")))])
+    (define/public (check-version)
+      (let* ([remote-version
+             (safe-url-fetch 
+              read 
+              "http://concurrency.cc/plumb/client-conf/version.txt"
+              "1000000")]
+            [changelog (safe-url-fetch port->string 
+                                       (format "http://concurrency.cc/plumb/client-conf/~a-changelog.txt"
+                                               remote-version)
+                                       "Important stuff. Get it!")])
+        
         (debug 'CHECK-VERSION "[~a] LOCAL [~a] REMOTE" 
                VERSION
                remote-version)
@@ -381,7 +388,8 @@
         (when (> remote-version
                  (string->number VERSION))
           (debug 'CHECK-VERSION "Newer version exists!")
-          (define vf (new frame%
+          
+          (define vf (new dialog%
                           [label "New Version!"]
                           [parent f]
                           ))
@@ -393,25 +401,38 @@
                [label    (format "We recommend version ~a instead." remote-version)]
                [parent vf])
           
+          (define ed (new editor-canvas%
+                          [parent vf]))
+          
+          (define t (new text%))
+          (send ed set-editor t)
+          (send ed set-line-count 6)
+          (send t insert changelog 
+                (send t get-end-position))
+          
+          
           (define h (new horizontal-panel%
                          [parent vf]
                          [stretchable-width true]))
           (define b (new button%
-                         [label "Later"]
+                         [label "Later..."]
                          [parent h]
                          [stretchable-width true]
                          [callback (λ (b e)
+                                     (set! block? false)
                                      (send vf show false))]))
           (define b2 (new button%
-                         [label "Get it now!"]
-                         [parent h]
-                         [stretchable-width true]
-                         [callback (λ (b e)
-                                     (send-url "http://concurrency.cc/downloads/")
-                                     (send vf show false)                           
-                                     )]))
+                          [label "Take me there!"]
+                          [parent h]
+                          [stretchable-width true]
+                          [callback (λ (b e)
+                                      (set! get? true)
+                                      (set! block? false)
+                                      (send vf show false)
+                                      )]))
           (send vf show true)
-          ;; Use thread/yield here to busywait.
+          (let loop () (when block? (yield) (loop)))
+          (when get? (send-url "http://concurrency.cc/downloads/"))
           )))
     
     (define/public (create)
@@ -425,10 +446,7 @@
       (send hardware add-view this)
       (enable-debug! 'ALL)
       (set-textual-debug)
-      (check-version)
       (build-ide)
-      
-      
       )
     
     (define/public (show bool)
@@ -454,7 +472,9 @@
     (super-new)
     ))
 
-
+              
 (define ide (new ide%))
 (send ide create)
+(sleep 1)
 (send ide show true)
+(send ide check-version)

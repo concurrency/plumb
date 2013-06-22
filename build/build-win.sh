@@ -12,6 +12,7 @@ RACKET=/c/Program\ Files/Racket/racket.exe
 ZIP=/c/Program\ Files/7-Zip/7z.exe
 PSCP=~/My\ Documents/GitHub/pscp.exe
 SOURCE=ide.rkt
+ICON=omer-icon
 
 pushd "$SRC"
   rm -rf "$BUILD"
@@ -32,9 +33,9 @@ pushd "$BUILD"
   rm -f version.rkt
   "$RACKET" build/write-version.rkt
   echo   Build Executable
-  cp "$SRC"/build/arduino.ico "$BUILD"
-  "$RACO" exe --ico arduino.ico -o "$DDNAME.exe" "$SRC/$SOURCE"
-  rm arduino.ico
+  cp "$SRC"/build/"$ICON.ico" "$BUILD"
+  "$RACO" exe --ico "$ICON.ico" -o "$DDNAME.exe" "$SRC/$SOURCE"
+  rm "$ICON.ico" 
   echo   Make It Distributable
   "$RACO" distribute "$DEST" "$DDNAME.exe"
   echo Remove the original build to eliminate confusion

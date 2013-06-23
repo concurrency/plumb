@@ -257,7 +257,7 @@
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("log" (string-arg) (string-arg)) client-log]
-   [("start-session" (string-arg)) return-session-id]
+   [("start-session") return-session-id]
    [("add-file" (string-arg)) add-file]
    [("compile" (string-arg) (string-arg) (string-arg)) guarded-compile-session]
    ;; Need guards and session ID checks on retrieve.

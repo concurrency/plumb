@@ -15,7 +15,7 @@
          "seq.rkt"
          "util.rkt"
          "debug.rkt"
-         "github.rkt")
+         )
 
 
 (define menu-examples%
@@ -35,7 +35,6 @@
     (define (allowed-category? o)
       (member o categories))
     
-    ;; https://api.github.com/repos/concurrency/plumbing-examples/contents/repositories.conf
     ;; Use the API
     (define/public (get-menus)
       (define menu-hash (make-hash))

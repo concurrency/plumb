@@ -151,12 +151,9 @@
 
 ;; start-session :: -> int
 ;; Returns a unique session ID used for adding files and compiling.
-(define (return-session-id req metadata)
+(define (return-session-id req)
   (define session-id (format "jupiter-~a" (random-string 32)))
   (debug 'START-SESSION "session-id: ~a~n" session-id)
-  
-  ;; Useage logging
-  (log req metadata)
   
   (add-session session-id)
   (make-session-dir config session-id)

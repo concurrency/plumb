@@ -197,7 +197,7 @@
          (debug 'START-SESSION "DEFAULT ERROR: ~a" (send p to-string))
          (debug 'START-SESSION "SERVER URL: ~a" 
                 (url->string
-                 (make-server-url host port "start-session" (default-metadata))))
+                 (make-server-url host port "start-session")))
          ;; Nothing should change as a result of this operation
          NO-CHANGE]
         

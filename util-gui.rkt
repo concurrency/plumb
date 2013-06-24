@@ -43,9 +43,10 @@
                [parent vf])
           
           (define ed (new editor-canvas%
-                          [parent vf]))
+                          [parent vf]
+                          ))
           
-          (define t (new text%))
+          (define t (new text% [auto-wrap true]))
           (send ed set-editor t)
           (send ed set-line-count 6)
           (send t insert changelog 

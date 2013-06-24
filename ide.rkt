@@ -372,6 +372,8 @@
       (enable-debug! 'ALL)
       (set-textual-debug)
       (build-ide)
+      (send f show true)
+      (check-version f)
       )
     
     (define/public (show bool)
@@ -400,6 +402,5 @@
               
 (define ide (new ide%))
 (send ide create)
-(sleep 1)
-(send ide show true)
-(check-version ide)
+
+

@@ -50,6 +50,7 @@
            [arduino-ports empty]
            [arduino-port false]
            [board-type false]
+           [board-mapping (make-hash)]
            
            [main-file false]
            [temp-dir false]
@@ -151,11 +152,7 @@
                           args))
            #:default '()
            ))))
-    
-    
-    ;; Should be a list of strings.
-    (define/public (get-board-choices)
-      (get-static #:as 'text "board-choices.rkt"))
+ 
     
     ;     ;;    ;;;;;;;    ;;      ;;    ;;     ;;;;     ;;      ;;    ;;   
     ;   ;;;;;   ;;;;;;;  ;;;;;   ;;;;;   ;;   ;;;;;;;;   ;;;     ;;  ;;;;;  
@@ -276,12 +273,25 @@
     ;   ;;;;;;;   ;;;;;;;;   ;;     ;; ;;    ;; ;;;;;;;   
     ;   ;;;;;;      ;;;;    ;;      ;; ;;    ;;;;;;;;;    
     
-    (define (board-choice->board-type choice)
-      (case choice
-        [("Arduino Duemilanove") "arduino"]
-        [("Arduino Uno" "Moteino") "uno"]
-        [else "arduino"]))
+    ;; Should be a list of strings.
+    (define/public (get-board-choices)
+      (filter string?
+              (map (λ (s)
+                     (let ([m (regexp-match #rx"\\s*(.*)\\s*:\\s*(.*)\\s*" s)])
+                       (cond
+                         [m
+                          (let ([board (list-ref m 1)]
+                                [mapping (list-ref m 2)])
+                            (hash-set! board-mapping board mapping)
+                            board)]
+                         [else 'error])))
+                   (get-static #:as 'text "board-choices.rkt"))))
     
+    (define (board-choice->board-type choice)
+      (define mapping (hash-ref board-mapping choice))
+      (debug 'BC->BT "~a => ~a" choice mapping)
+      mapping)
+      
     (define/public (set-board-type b)
       (set! board-type (board-choice->board-type b)))
     

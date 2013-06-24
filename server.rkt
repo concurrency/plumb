@@ -130,17 +130,18 @@
 (define (log req metadata)
   (define d (current-date))
   (define (pad v) (if (< v 10) (format "0~a" v) v))
-  (define path (build-path (send (config) get-config 'SERVER-LOG-DIR)
-                           (format "~a~a~a-log.txt" 
-                                   (date-year d)
-                                   (pad (date-month d))
-                                   (pad (date-day d)))))
-  (with-output-to-file path #:exists 'append
-    (λ ()
-      (printf "~a,~a~n" 
-              (request-client-ip req)
-              (b64-decode metadata)))
-  ))
+  (when (directory-exists? (send (config) get-config 'SERVER-LOG-DIR))
+    (define path (build-path (send (config) get-config 'SERVER-LOG-DIR)
+                             (format "~a~a~a-log.txt" 
+                                     (date-year d)
+                                     (pad (date-month d))
+                                     (pad (date-day d)))))
+    (with-output-to-file path #:exists 'append
+      (λ ()
+        (printf "~a,~a~n" 
+                (request-client-ip req)
+                (b64-decode metadata)))
+      )))
 
 (define (client-log req key metadata)
   (when (and (equal? key LOG-KEY)

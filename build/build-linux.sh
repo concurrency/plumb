@@ -11,7 +11,7 @@ RACO=raco
 ZIP=tar
 PSCP=scp
 SOURCE=ide.rkt
-ICON=omer-icon
+ICON=concurrencycc-logo
 
 pushd "$SRC"
   rm -rf "$BUILD"

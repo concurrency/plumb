@@ -13,7 +13,7 @@ function thebuild {
   DATE=`date +%Y%m%d`
   APP=${BASE}.app
   PLUMBCONTENTS=${APP}/Contents
-  ICON=omer-icon
+  ICON=concurrencycc-logo
   VOLICON=concurrencycc-logo
   BUILD=build-mac
   DMGNAME=${BASE}-${DATE}

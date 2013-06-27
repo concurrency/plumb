@@ -14,7 +14,7 @@ function thebuild {
   RACKET=/c/Program\ Files/Racket/racket.exe
   ZIP=/c/Program\ Files/7-Zip/7z.exe
   PSCP=~/My\ Documents/GitHub/pscp.exe
-  ICON=omer-icon
+  ICON=concurrencycc-logo
 
   pushd "$SRC"
     rm -rf "$BUILD"

@@ -653,6 +653,39 @@
         ))
     
     
+    (define/public (user-upload-firmware)
+      (debug 'FIRMWARE "User requested firmware upload.")
+         
+      (define p (new process% 
+                     [context 'USER-FIRMWARE-UPLOAD]
+                     [update (λ (msg)
+                               (set! message (format "~a: ~a"
+                                                     (send p get-context)
+                                                     (->string msg)))
+                               (update))]))
+      (seq p
+        ;; Get a session ID
+        [(initial? 'ERROR-ID-FETCH)
+         (get-new-session-id)
+         id]
+        ;; Check
+        [(string? 'DEBUG)
+         (set! message (format "Session ID: ~a" id))
+         (update)
+         NO-CHANGE]
+        
+        ;; Load system configuration
+        [(string? 'ERROR-LOADING-SYSTEM-CONFIGURATION)
+         (set! config (new client-config%))
+         NO-CHANGE]
+        
+        ;; Write out the firmware
+        [(string? 'ERROR-WRITING-FIRMWARE)
+         (write-firmware)
+         (upload-firmware)
+         (set! first-compilation? false)
+         NO-CHANGE]))
+    
     ;      ;;;;       ;;;;     ;;       ;;  ;;;;;;  ;;  ;;      ;;;;;;; 
     ;    ;;;;;;;;   ;;;;;;;;   ;;;     ;;;  ;;  ;;; ;;  ;;      ;;;;;;; 
     ;   ;;;     ;  ;;;    ;;;  ;;;;   ;;;;  ;;   ;; ;;  ;;      ;;      
@@ -803,6 +836,7 @@
       
       (send p get)
       )
+    
     
     
     (define/public (compile)

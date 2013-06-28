@@ -145,7 +145,12 @@
                                               (send hardware get-arduino-ports)])
                                          (map (λ (i)
                                                 (send serial-port append i))
-                                              arduinos)))]))
+                                              arduinos)
+                                         (send hardware set-arduino-port 
+                                               (send serial-port get-string 
+                                                     (send serial-port get-selection)))
+                                         (update)
+                                         ))]))
       
       ;; Need to update the model with
       ;; the current board, port
@@ -180,7 +185,7 @@
                        (send tabbed-texts new-document))])
       
       (new menu-item%
-           [label "Open in New Tab"]
+           [label "Open"]
            [parent file]
            [callback 
             (λ (m e)
@@ -190,13 +195,13 @@
                   )))])
       
       (new menu-item%
-           [label "Save Tab"]
+           [label "Save"]
            [parent file]
            [callback (λ (m e)
                        (send tabbed-texts save))])
       
       (new menu-item%
-           [label "Save Tab As"]
+           [label "Save As"]
            [parent file]
            [callback 
             (λ (m e)
@@ -252,6 +257,17 @@
                                  #:content
                                  (replace-tags-in-code s))))]
              ))
+      
+      (define arduino (new menu%
+                           [label "Hardware"]
+                           [parent menu-bar]))
+      
+      (define vm (new menu-item%
+                      [label "Upload Virtual Machine"]
+                      [parent arduino]
+                      [callback
+                       (λ (m e)
+                         (send hardware user-upload-firmware))]))
       
       (define help (new menu%
                         [label "&Help"]

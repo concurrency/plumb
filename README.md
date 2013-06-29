@@ -15,24 +15,39 @@ plumb
 
 We have installable apps for Mac and Windows. Linux available upon request.
 
-* [Windows (64-bit)](#FIXME)
-* [Mac (64-bit)](#FIXME)
-
 ### Getting Help
 
 You can use the "Help" option in plumb (either in the command-line or GUI version), or you can join the [users@concurrency.cc](#FIXME) mailing list. We're always excited to help new occam programmers get started.
 
 Also, check out [these books](#FIXME), which will help you get started with occam and the Plumbing libraries.
 
-### Contributing
+## License
 
-Join us on the [developers@concurrency.cc](#FIXME) mailing list to ask about how you can contribute. 
+### Icon
 
-* occam-pi libraries to support specific hardware, or to provide useful utilities are always welcome.
+Plumb icon created by nicubunu, released under a CC0 Public Domain License
+http://openclipart.org/detail/12997/plum-by-nicubunu
 
-* Documentation is always welcome. The wiki associated with this Github repository contains the help for plumb, and contributors only need a (free) Github account to help improve the docs.
+### Software
 
-* Racket (nee Scheme) hackers are welcome to contribute to the plumb client or server.
+The MIT License (MIT)
 
-* Autotools experts are welcome to help with the build system.
+Copyright (c) 2013 Matthew C. Jadud
 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

@@ -72,7 +72,7 @@
         -V -F 
         (-p ,(hash-ref board-config 'mcpu))
         (-b ,(hash-ref board-config 'baud))
-        (-c arduino)
+        (-c ,(hash-ref board-config 'programmer))
         (-P ,serial-port)
         -D -U 
         ,(format "flash:w:~a" (extract-filename file)))))

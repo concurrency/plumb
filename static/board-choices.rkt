@@ -1,6 +1,6 @@
 Arduino Duemilanove:arduino
 Arduino Uno:uno
 Moteino:uno
-Freeduino:arduino2
+Freeduino:arduino
 Arduino Pro 3.3V:arduinopro
 Arduino Mega 2560:arduinomega2560

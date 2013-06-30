@@ -42,13 +42,14 @@
     (send this add-config 'HOST-TYPE 'aws)
     
     (send this add-config 'ARDUINO (build-path (getenv "HOME") "local" "arduino"))
+    (send this add-config 'GIT (build-path (getenv "HOME") "git"))
     (send this add-config 'KROC (build-path (getenv "HOME") "git" "kroc"))
     
     (send this add-config 'BINPATH (build-path (getenv "HOME") "local" "arduino" "bin"))
     ;; Which one?
     (send this add-config 'LIBPATH (build-path (send this get-config 'ARDUINO) "share" "tvm" "avr-vtlib"))
     ;; These are the libraries for AVR work (Plumbing) 
-    (send this add-config 'INCLUDE (build-path  (send this get-config 'KROC) "tvm" "arduino" "occam" "include"))
+    (send this add-config 'INCLUDE (build-path  (send this get-config 'GIT) "plumbing" "src"))
     
     (send this add-config 'TEMPDIR (build-path "/tmp" "jupiter"))
     (send this add-config 'SESSION-DB (build-path (send this get-config 'TEMPDIR) "jupiter.sqlite"))

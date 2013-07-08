@@ -1,0 +1,361 @@
+<!-- 
+
+http://fabianosoriani.wordpress.com/2011/08/15/express-api-on-node-js-with-mysql-auth/ 
+
+Also, making things collaborative in realtime with ShareJS:
+https://github.com/josephg/ShareJS
+
+Another editor option:
+http://codemirror.net/
+
+And, Firebase?
+https://www.firebase.com/blog/2013-04-09-firepad-open-source-realtime-collaborative-editor.html
+
+
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>
+      Jupiter
+    </title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="css/bootstrap.css" type="text/css">
+    <style type="text/css">
+body {
+            padding-top: 60px;
+            padding-bottom: 40px;
+        }
+    </style>
+    <link rel="stylesheet" href="css/bootstrap-responsive.css" type="text/css"><!-- ><link rel="stylesheet" href="css/main.css" type="text/css">-->
+
+    <script src="js/vendor/modernizr-2.6.2-respond-1.1.0.min.js" type="text/javascript">
+</script>
+    <script src="js/vendor/jquery-1.9.1.min.js" type="text/javascript">
+</script><!-- <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script> -->
+    <!-- Include Firebase -->
+
+    <script src="https://cdn.firebase.com/v0/firebase.js" type="text/javascript">
+</script><!-- and, codemirror -->
+    <link rel="stylesheet" href="css/codemirror.css" type="text/css">
+    <script src="js/codemirror.js" type="text/javascript">
+</script><!-- Include Firepad -->
+
+    <script src="js/firepad.js" type="text/javascript">
+</script>
+    <link rel="stylesheet" href="css/firepad.css" type="text/css">
+    <script src="js/base64.js" type="text/javascript">
+</script>
+    <script type="text/javascript" src="http://api.filepicker.io/v1/filepicker.js">
+</script>
+    <style type="text/css" media="screen">
+.firepad {
+         width: 80%;
+         height: 600px;
+       }
+
+       /* Note: CodeMirror applies its own styles which can be customized in the same way.
+          To apply a background to the entire editor, we need to also apply it to CodeMirror. */
+       .CodeMirror {
+       }
+       
+      #editor { 
+        position: relative !important;
+        border: 1px solid lightgray;
+        margin: auto;
+        height: 500px;
+        width: 80%;
+        /*
+        width: 100%;
+        height: 90%;
+        margin: 0;
+        position: absolute;
+        top: 60px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        */
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript">
+  var editor = null; 
+      var localURL = "localhost";
+      var localPort = 10000;
+      var remoteURL = "localhost";
+      var remotePort = 9000;
+      var currentFPFile = null;
+      var firepadRef = new Firebase('https://jadudm-jupiter.firebaseIO-demo.com/');
+      filepicker.setKey("AfQR7dKqVS7WtCvlDkf7Yz");
+    </script>
+    <div class="row">
+      <div class="span12 offset1">
+        <div class="btn-group">
+          <a class="btn btn-warning" href="#">Check Program</a> <a class="btn btn-danger" href="#">Run Program</a>
+        </div><!-- File Management -->
+        <div class="btn-group">
+          <a class="btn dropdown-toggle btn-success" data-toggle="dropdown" href="#">File Management</a>
+          <ul class="dropdown-menu">
+            <li class="nav-header">File Management
+            </li>
+            <li>
+              <a href="#" id="file-open" name="file-open">Open</a>
+            </li>
+            <li>
+              <a href="#" id="file-save" name="file-save">Save</a>
+            </li>
+            <li>
+              <a href="#">Share</a>
+            </li>
+            <li class="nav-header">Version Control
+            </li>
+            <li>
+              <a href="#">Create Project</a>
+            </li>
+            <li>
+              <a href="#">Commit Project</a>
+            </li>
+            <li>
+              <a href="#">Share Project</a>
+            </li>
+          </ul>
+        </div><!-- End File Management -->
+        <!-- Arduino Management -->
+        <div class="btn-group">
+          <a class="btn dropdown-toggle btn-primary" data-toggle="dropdown" href="#">Arduino Setup</a>
+          <ul class="dropdown-menu">
+            <li class="nav-header">Boards
+            </li>
+            <li class="dropdown-submenu">
+              <a tabindex="-1" href="#">Select Type of Arduino</a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a href="#">Freeduino</a>
+                </li>
+                <li>
+                  <a href="#">Uno</a>
+                </li>
+                <li>
+                  <a href="#">Mega 2560</a>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown-submenu">
+              <a tabindex="-1" href="#">Select Comm Port</a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a href="#">COM1</a>
+                </li>
+                <li>
+                  <a href="#">/dev/tty.USB0</a>
+                </li>
+                <li>
+                  <a href="#">/dev/tty.usbserial-ADEADBEEF</a>
+                </li>
+              </ul>
+            </li>
+            <li class="nav-header">Laying Foundations
+            </li>
+            <li>
+              <a href="#" id="install-tvm" name="install-tvm">Install Transterpreter</a>
+            </li>
+            <li>
+              <a href="#" id="install-heartbeat" name="install-heartbeat">Install "heartbeat()"</a>
+            </li>
+          </ul>
+        </div><!-- End Arduino Management -->
+      </div>
+    </div>
+    <div class="row">
+      &nbsp;
+    </div>
+    <div class="row">
+      <div class="span12 offset1">
+          <div id="code"></div>
+          <script type="text/javascript">
+        //// Create CodeMirror (with lineWrapping on).
+          var codeMirror = CodeMirror(document.getElementById('code'), 
+            { lineWrapping: true,
+              lineNumbers: true,
+              indentUnit: 2,
+              indentWithTabs: true,
+              tabMode: "shift",
+              theme: "cm-s-erlang-dark",
+              mode: { name: "python",
+                      version: 2,
+                      singleLineStringErrors: false}
+            });
+
+          // Set the editor.
+          //editor = codeMirror;
+          var getEditorText = function () {
+            // editor.getValue(); // for ace
+            //codeMirror.getValue(); // for CodeMirror
+            firepad.getText();
+          };
+          
+          var setEditorText = function (txt) {
+            firepad.setText(txt);
+          };
+
+          //// Create Firepad (with rich text toolbar and shortcuts enabled).
+          var firepad = Firepad.fromCodeMirror(firepadRef, codeMirror,
+              { richTextToolbar: false});
+
+          //// Initialize contents.
+          firepad.on('ready', function() {
+            if (firepad.isHistoryEmpty()) {
+              firepad.setText('Rich-Text editing with Firepad!');
+            }
+          });
+          </script> <script type="text/javascript">
+
+          var uploadHexFun = function (hex) {
+          console.log('Uploading Hex.');
+          console.log(hex);
+          var d = {};
+          d['code'] = hex;
+          d['language'] = 'ihex';
+          var jsonb64 = base64.encode(JSON.stringify(d));
+
+          $.ajax ({
+          type: 'GET',
+          // dataType: 'json',
+          // contentType: 'application/json',
+          //data: d.code,
+          url: 'http://' + remoteURL + ':' + localPort + '/program/' + jsonb64,
+          success: function(resp) { 
+          console.log(resp);
+          }
+          });
+          };
+
+          var compileCallback = function (e) {
+          compileFun(uploadHexFun);
+          }
+          var compileFun = function (chain) {
+          console.log('Reticulating Splines 2.');
+          var d = {};
+          d['code'] = getEditorText();
+          d['language'] = 'arduino';
+          var jsonb64 = base64.encode(JSON.stringify(d));
+
+          $.ajax ({
+            type: 'GET',
+            //dataType: 'json',
+            //contentType: 'application/json',
+            //data: JSON.stringify(d),
+            url: 'http://' + remoteURL + ':' + remotePort 
+                 + '/compile/' + jsonb64,
+            success: function(resp) { 
+              console.log(resp)
+              var xmlDoc = $.parseXML(resp),
+                  $xml = $( xmlDoc ),
+                  $test = $xml.find('b64');
+              var txt = $test.text();
+              txt = txt.replace(/\s/g, '');
+              var json_str = base64.decode(txt);
+              var json = $.parseJSON(json_str);
+              chain(json.hex);
+            }
+          });
+          };
+
+          </script> 
+          
+          <script type="text/javascript">
+
+          var heightUpdateFunction = function() {
+
+            // http://stackoverflow.com/questions/11584061/
+            /*
+            var newHeight =
+                      editor.getSession().getScreenLength()
+                      * editor.renderer.lineHeight
+                      + editor.renderer.scrollBar.getWidth();
+            */
+            // Set the height to 60% of the window height.
+            newHeight = ($(window).height() * 0.6);
+            
+            // Very Noisy
+            //console.log(newHeight);
+            // $('#editor').height(newHeight + "px");
+            // $('#editor-section').height(newHeight + "px");
+            $('#code').height(newHeight + "px");
+
+            // This call is required for the editor to fix all of
+            // its inner structure for adapting to a change in size
+            // editor.resize(); // For ACE
+            codeMirror.setSize( {width: null, height: newHeight});
+            codeMirror.refresh();
+          };
+
+          // Set initial size to match initial content
+          // heightUpdateFunction();
+
+          // Whenever a change happens inside the ACE editor, update
+          // the size again
+          // editor.getSession().on('change', heightUpdateFunction);
+          heightUpdateFunction();
+          
+          $(window).resize(heightUpdateFunction);
+          </script> 
+          
+          <!-- 
+        var code = editor.getSession().getValue();
+        editor.getSession().setValue("new code here");
+      -->
+           <script type="text/javascript">
+var openFile = function () {
+          filepicker.pick({
+          // Places we can load data from.
+          services: ['COMPUTER', 'GITHUB', 'DROPBOX', 'GOOGLE_DRIVE', 'SKYDRIVE', 'BOX', 'FTP'],
+          // Only load sensible things.
+          // Could use a mimetype instead.
+          extensions: ['.occ', '.module', '.inc', '.md'],
+          maxSize: 50*1024,
+          },
+          // Success
+          function(FPFile){
+            console.log(JSON.stringify(FPFile));
+            // Save the current object
+            currentFPFile = FPFile;
+            // Plunk the data into the editor
+            filepicker.read(FPFile, function(data){
+                setEditorText(data);
+            });
+            
+          },
+          // Fail
+          function(FPError){
+            console.log(FPError.toString());
+          }
+          );
+          };
+          $("#file-open").click(openFile);
+          // $("#file-save").click(saveFile);
+          </script> <script type="text/javascript">
+
+          $("#compile").click(compileCallback);
+
+          $("#install-tvm").click(function () { alert("Install the TVM."); });
+          $("#install-heartbeat").click(function () { alert("Install heartbeat()."); });
+          </script>
+      </div>
+    </div><!-- row -->
+    <script src="js/vendor/bootstrap.min.js" type="text/javascript">
+</script><script src="js/main.js" type="text/javascript">
+</script><!--
+<script type="text/javascript">
+        var _gaq=[['_setAccount','UA-XXXXX-X'],['_trackPageview']];
+            (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+            g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+            s.parentNode.insertBefore(g,s)}(document,'script'));
+    </script>
+-->
+  </body>
+</html>

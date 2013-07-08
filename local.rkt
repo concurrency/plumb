@@ -43,7 +43,7 @@
 
 (define (program-handler req b64)
   (let* ([code (decode-json b64)])
-    (parameterize ([current-directory TEMPDIR])
+    (parameterize ([current-directory "/tmp"])
       (printf "LOCAL: ~a~n" code)
       (response/xexpr
        #:code 200
@@ -68,7 +68,7 @@
                    #:server-root-path (current-directory)
                    #:extra-files-paths 
                    (list 
-                    (build-path (current-directory) "ide"))
+                    (build-path (current-directory) "collabedit"))
                    #:servlet-path "/"
                    #:servlet-regexp #rx""
                 )))

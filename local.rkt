@@ -29,7 +29,7 @@
          json)
 
 (require "path-handling.rkt")
-
+(define hardware 'none)
 
 (define (decode-json b64)
   (let* ([b64-decoded 
@@ -52,10 +52,22 @@
       )))
     
   
+(define (list-ports req)
+  (set! hardware (new plumb%))
+  (send hardware load-config)
+  (send hardware enumerate-arduinos)
+  
+  (let ([ls (send hardware get-arduino-ports)])
+    
+    (response/xexpr
+     #:code 200
+     #:headers (list (make-header #"Access-Control-Allow-Origin" #"*"))
+     `(ports "ok"))))
 
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("program" (string-arg)) program-handler]
+   [("list-serial-ports") list-ports]
    ))
 
 (define (serve)

@@ -28,7 +28,18 @@
          net/base64
          json)
 
-(require "path-handling.rkt")
+(require "code-text.rkt"
+         "tabbed-texts.rkt"
+         "model-plumb.rkt"
+         "menu-examples.rkt"
+         "debug.rkt"
+         "mvc.rkt"
+         "util.rkt"
+         "version.rkt"
+         "util-gui.rkt"
+         )
+
+
 (define hardware 'none)
 
 (define (decode-json b64)
@@ -52,22 +63,24 @@
       )))
     
   
-(define (list-ports req)
+(define (list-serial-ports req)
   (set! hardware (new plumb%))
   (send hardware load-config)
   (send hardware enumerate-arduinos)
-  
   (let ([ls (send hardware get-arduino-ports)])
-    
+    (printf "list-serial-ports: ~a~n" ls)
     (response/xexpr
      #:code 200
      #:headers (list (make-header #"Access-Control-Allow-Origin" #"*"))
-     `(ports "ok"))))
+      
+     `(b64 ,(bytes->string/utf-8
+                   (b64-encode
+                    (jsexpr->string ls)))))))
 
 (define-values (dispatch blog-url)
   (dispatch-rules
    [("program" (string-arg)) program-handler]
-   [("list-serial-ports") list-ports]
+   [("list-serial-ports") list-serial-ports]
    ))
 
 (define (serve)
@@ -75,7 +88,7 @@
                    (lambda (e) 'ServeFail)])
     (serve/servlet dispatch
                    #:launch-browser? #f
-                   #:port 10000
+                   #:port 11000
                    #:listen-ip #f ;"192.168.254.200" ; local.org
                    #:server-root-path (current-directory)
                    #:extra-files-paths 

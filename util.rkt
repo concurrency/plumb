@@ -35,7 +35,8 @@
 
 (define LOG-KEY "MODICUM")
 
-(define (safe-url-fetch reader url-string #:default [default-message ""])
+(define (safe-url-fetch reader #:default [default-message ""] url-string )
+  (debug 'SUF "Fetching URL-STRING ~a" url-string)
   (let ([result ""])
     (with-handlers ([exn? (λ (e)
                             (debug 'SUF "Can't fetch ~a" url-string)
@@ -105,9 +106,11 @@
                    (second halves)))))
   h)
 
+#|
 (define (symbol<? a b)
   (string<? (symbol->string a)
             (symbol->string b)))
+|#
 
 (define (snoc ls o)
   (reverse (cons o (reverse ls))))

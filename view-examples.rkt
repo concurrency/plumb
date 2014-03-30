@@ -208,7 +208,7 @@
              (printf "~a" content))))))
     
     (define (replace-tags-in-code conf)
-      (let ([code (send model get-static #:as 'text (hash-ref conf 'path))]
+      (let ([code (send model get-static #:as 'text "ide" (hash-ref conf 'path))]
             [result '()])
         
         ;; Append a standard header
@@ -283,7 +283,7 @@
       (let ()
         (filter (λ (s)
                   (>= (string-length s) 1))
-                (send model get-static #:as 'text "categories.conf"))))
+                (send model get-static #:as 'text "ide" "categories.conf"))))
     
     (define (allowed-category? o)
       (member o categories))
@@ -306,7 +306,7 @@
       (seq p
         [(initial? 'ERROR-READ-WHOLE-URL)
          (debug (send p get-context) "Getting content from server." )
-         (send model get-static #:as 'text "plumbing-examples" "paths.conf")]
+         (send model get-static #:as 'text "ide" "plumbing-examples" "paths.conf")]
         [(list? 'ERROR2)
          (debug (send p get-context) "REPOSES:~n~a" (send p get))
          (for ([path (send p get)])
@@ -314,11 +314,12 @@
            (when (and (< 2 (string-length path))
                       (not (regexp-match "#" path)))
              (debug (send p get-context) "REPOS: ~a" path)
-             (let* ([raw-conf (send model get-static #:as 'text (format 
-                                                                 "~a/~a/~a"
-                                                                 "plumbing-examples"
-                                                                 path
-                                                                 "info.conf"))])
+             (let* ([raw-conf (send model get-static #:as 'text "ide" 
+                                    (format 
+                                     "~a/~a/~a"
+                                     "plumbing-examples"
+                                     path
+                                     "info.conf"))])
                (debug (send p get-context) "raw-conf: ~a" raw-conf)
                (let ([conf (process-config raw-conf)])
                  (debug (send p get-context) "CONF: ~a" conf)

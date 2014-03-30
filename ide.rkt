@@ -279,7 +279,7 @@
       ;; Loads stuff from servers
       
       (define (replace-tags-in-code conf)
-        (let ([code (send hardware get-static #:as 'text "plumbing-examples" (hash-ref conf 'path))]
+        (let ([code (send hardware get-static #:as 'text "ide" "plumbing-examples" (hash-ref conf 'path))]
               [result '()])
           
           ;; Append a standard header
@@ -443,7 +443,7 @@
       (set-textual-debug)
       (build-ide)
       (send f show true)
-      (check-version f)
+      (check-version hardware f)
       )
     
     (define/public (show bool)
@@ -469,8 +469,8 @@
     (super-new)
     ))
 
-              
+
 (define ide (new ide%))
+(set-textual-debug)
+(enable-debug! 'ALL)
 (send ide create)
-
-

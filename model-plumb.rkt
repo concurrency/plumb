@@ -43,7 +43,8 @@
          )
 
 (define MIN-FIRMWARE-SIZE 10000)
-(define CLIENT-CONF-ROOT "http://concurrency.cc/plumb/client-conf")
+;(define CLIENT-CONF-ROOT "http://concurrency.cc/plumb/client-conf")
+(define CLIENT-CONF-ROOT "http://107.170.105.21/ide/conf")
 
 (define plumb%
   (class model%
@@ -100,6 +101,11 @@
     
     (define (client-conf str)
       (format "~a/~a" CLIENT-CONF-ROOT str))
+    
+    (define/public (get-host)
+      host)
+    (define/public (get-port)
+      port)
     
     ;; Grab the host and port from the server
     (define/public (compilation-server-config)
@@ -248,9 +254,14 @@
       )
     
     (define/public (set-remote-host h p)
-      (set! host (dns-get-address 
-                  (dns-find-nameserver)
-                  h))
+      (debug 'SET-REMOTE-HOST "Setting remote host for ~a and ~a" h p)
+      (cond
+        [(regexp-match "[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+" (format "~a" h))
+         (debug 'SET-REMOTE-HOST "Found a dotted quad.")
+         (set! host h)]
+        [else
+         (debug 'SET-REMOTE-HOST "Looking up DNS name.")
+         (set! host (dns-get-address (dns-find-nameserver) h))])
       (set! port (string->number p))
       (update))
     
@@ -307,7 +318,7 @@
                             (hash-set! board-mapping board mapping)
                             board)]
                          [else 'error])))
-                   (get-static #:as 'text "board-choices.rkt"))))
+                   (get-static #:as 'text "ide" "board-choices.rkt"))))
     
     (define (board-choice->board-type choice)
       (define mapping (hash-ref board-mapping choice))

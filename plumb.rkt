@@ -38,7 +38,7 @@
          "upload.rkt"
          "session-management.rkt"
          "app-type.rkt"
-         "sequential-ops.rkt"
+         "seq.rkt"
          )
 
 (define VERSION "1.0.0")

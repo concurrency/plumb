@@ -30,14 +30,15 @@
          "version.rkt")
 
 
-(define (check-version f)
+(define (check-version hardware f)
       (let* ([remote-version
              (safe-url-fetch 
               read 
-              "http://concurrency.cc/plumb/client-conf/version.txt"
+              (format "http://~a/ide/conf/version.rkt" (send hardware get-host))
               #:default "1000000")]
             [changelog (safe-url-fetch port->string 
-                                       (format "http://concurrency.cc/plumb/client-conf/~a-changelog.txt"
+                                       (format "http://~a/ide/changelogs/~a-changelog.txt"
+                                               (send hardware get-host)
                                                remote-version)
                                        #:default "Important stuff. Get it!")])
         
